@@ -1,1 +1,1 @@
-# miniSQL
+# miniSQL project
