@@ -6,8 +6,13 @@
 template<typename KeyType, typename DataType, int rank>
 class BPlusInternalNode;
 
-template<typename KeyType, typename DataType, int rank>
-class BPlusTree;
+/*                                          */
+/*                                          */
+/*                  “Ï≥£                    */
+/*                                          */
+/*                                          */
+
+enum class BPlusTreeException { DuplicateKey };
 
 /*                                          */
 /*                                          */
@@ -20,7 +25,10 @@ class BPlusNode {
 public:
     BPlusNode() : keyNum(0), parent(nullptr) {}
     ~BPlusNode() = default;
-    virtual void insertData(KeyType newKey, DataType &&newData) = 0;
+    BPlusInternalNode<KeyType, DataType, rank> *getParent() { return parent; }
+    void setParent(BPlusInternalNode<KeyType, DataType, rank> *parent) { this->parent = parent; }
+    virtual bool findData(const KeyType &guideKey) const = 0;
+    virtual void insertData(const KeyType &newKey, const DataType &newData) = 0;
     virtual void splitNode() = 0;
     virtual void print() const = 0;
 
@@ -28,8 +36,6 @@ protected:
     int keyNum;
     KeyType key[rank + 1];
     BPlusInternalNode<KeyType, DataType, rank> *parent;
-    
-    friend class BPlusTree<KeyType, DataType, rank>;
 };
 
 template<typename KeyType, typename DataType, int rank>
@@ -37,10 +43,12 @@ class BPlusLeafNode : public BPlusNode<KeyType, DataType, rank> {
 public:
     BPlusLeafNode() : BPlusNode<KeyType, DataType, rank>(), prevLeaf(nullptr), nextLeaf(nullptr) {}
     ~BPlusLeafNode() = default;
-    void insertData(KeyType newKey, DataType &&newData) override;
+
+    bool findData(const KeyType &guideKey) const override;
+    void insertData(const KeyType &newKey, const DataType &newData) override;
     void splitNode() override;
     void print() const override { 
-        std::cout << this->keyNum << ":";
+        std::cout << this->keyNum << "-Leaf:";
         for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "," << data[i] << "]";
         std::cout << std::endl;
     }
@@ -54,13 +62,17 @@ private:
 template<typename KeyType, typename DataType, int rank>
 class BPlusInternalNode : public BPlusNode<KeyType, DataType, rank> {
 public:
-    BPlusInternalNode(BPlusNode<KeyType, DataType, rank> *firstChild) : BPlusNode<KeyType, DataType, rank>() { child[0] = firstChild; }
+    BPlusInternalNode(BPlusNode<KeyType, DataType, rank> *firstChild) : BPlusNode<KeyType, DataType, rank>() { child[0] = firstChild; firstChild->setParent(this); }
     ~BPlusInternalNode() = default;
-    void addKey(KeyType newKey, BPlusNode<KeyType, DataType, rank> *newChild);
-    void insertData(KeyType newKey, DataType &&newData) override;
+
+    void addKey(const KeyType &newKey, BPlusNode<KeyType, DataType, rank> *newChild);
+    int findNextPath(const KeyType &guideKey) const;
+
+    bool findData(const KeyType &guideKey) const override;
+    void insertData(const KeyType &newKey, const DataType &newData) override;
     void splitNode() override;
     void print() const override {
-        std::cout << this->keyNum << ":";
+        std::cout << this->keyNum << "-Internal:";
         for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "]";
         std::cout << std::endl;
         for (int i = 0; i <= this->keyNum; i++) child[i]->print();
@@ -77,7 +89,20 @@ private:
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
-void BPlusLeafNode<KeyType, DataType, rank>::insertData(KeyType newKey, DataType &&newData) {
+bool BPlusLeafNode<KeyType, DataType, rank>::findData(const KeyType &guideKey) const {
+    int left = 0, right = this->keyNum - 1;
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (guideKey == this->key[mid]) return true;
+        else if (guideKey < this->key[mid]) right = mid - 1;
+        else left = mid + 1;
+    }
+    return false;
+}
+
+template<typename KeyType, typename DataType, int rank>
+void BPlusLeafNode<KeyType, DataType, rank>::insertData(const KeyType &newKey, const DataType &newData) {
+    if (findData(newKey)) throw BPlusTreeException::DuplicateKey;
     int i;
     for (i = this->keyNum; i > 0 && this->key[i - 1] > newKey; i--) {
         this->key[i] = this->key[i - 1];
@@ -99,7 +124,7 @@ void BPlusLeafNode<KeyType, DataType, rank>::splitNode() {
     newNode->prevLeaf = this;
     this->nextLeaf = newNode;
 
-    for (int i = leftKeyNum; i < this->keyNum; i++) newNode->insertData(this->key[i], std::forward<DataType>(data[i]));
+    for (int i = leftKeyNum; i < this->keyNum; i++) newNode->insertData(this->key[i], data[i]);
     this->keyNum = leftKeyNum;
     if (!this->parent) this->parent = new BPlusInternalNode<KeyType, DataType, rank>(this);
     newNode->parent = this->parent;
@@ -113,7 +138,7 @@ void BPlusLeafNode<KeyType, DataType, rank>::splitNode() {
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
-void BPlusInternalNode<KeyType, DataType, rank>::addKey(KeyType newKey, BPlusNode<KeyType, DataType, rank> *newChild) {
+void BPlusInternalNode<KeyType, DataType, rank>::addKey(const KeyType &newKey, BPlusNode<KeyType, DataType, rank> *newChild) {
     int i;
     for (i = this->keyNum; i > 0 && this->key[i - 1] > newKey; i--) {
         this->key[i] = this->key[i - 1];
@@ -125,15 +150,27 @@ void BPlusInternalNode<KeyType, DataType, rank>::addKey(KeyType newKey, BPlusNod
 }
 
 template<typename KeyType, typename DataType, int rank>
-void BPlusInternalNode<KeyType, DataType, rank>::insertData(KeyType newKey, DataType &&newData) {
+int BPlusInternalNode<KeyType, DataType, rank>::findNextPath(const KeyType &guideKey) const {
     int left = 0, right = this->keyNum - 1;
     while (left != right) {
         int mid = (left + right) / 2;
-        if (newKey < this->key[mid]) right = mid;
+        if (guideKey < this->key[mid]) right = mid;
         else left = mid + 1;
     }
-    if (newKey >= this->key[left]) left++;
-    child[left]->insertData(newKey, std::forward<DataType>(newData));
+    if (guideKey >= this->key[right]) right++;
+    return right;
+}
+
+template<typename KeyType, typename DataType, int rank>
+bool BPlusInternalNode<KeyType, DataType, rank>::findData(const KeyType &guideKey) const {
+    int next = findNextPath(guideKey);
+    return child[next]->findData(guideKey);
+}
+
+template<typename KeyType, typename DataType, int rank>
+void BPlusInternalNode<KeyType, DataType, rank>::insertData(const KeyType &newKey, const DataType &newData) {
+    int next = findNextPath(newKey);
+    child[next]->insertData(newKey, newData);
 
     if (this->keyNum >= rank) splitNode();
 }
@@ -143,7 +180,10 @@ void BPlusInternalNode<KeyType, DataType, rank>::splitNode() {
     int leftKeyNum = this->keyNum / 2;
     BPlusInternalNode *newNode = new BPlusInternalNode(child[leftKeyNum + 1]);
 
-    for (int i = leftKeyNum + 1; i < this->keyNum; i++) newNode->addKey(this->key[i], child[i + 1]);
+    for (int i = leftKeyNum + 1; i < this->keyNum; i++) {
+        newNode->addKey(this->key[i], child[i + 1]);
+        child[i + 1]->setParent(newNode);
+    }
     this->keyNum = leftKeyNum;
     if (!this->parent) this->parent = new BPlusInternalNode<KeyType, DataType, rank>(this);
     newNode->parent = this->parent;
@@ -161,11 +201,11 @@ class BPlusTree {
 public:
     BPlusTree() : root(new BPlusLeafNode<KeyType, DataType, rank>()) {}
     ~BPlusTree();
-    void insertData(KeyType newKey, DataType &&newData) {
-        root->insertData(newKey, std::forward<DataType>(newData));
-        if (root->parent) root = root->parent;
+    void insertData(KeyType newKey, const DataType &newData) {
+        root->insertData(newKey, newData);
+        if (root->getParent()) root = root->getParent();
     }
-    //void findData(KeyType key);
+    bool findData(KeyType key) const { return root->findData(key); }
     //void removeData(KeyType key);
     //void updateData(KeyType key, DataType &data);
     void print() const { root->print(); }
