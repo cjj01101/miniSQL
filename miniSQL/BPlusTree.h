@@ -1,7 +1,8 @@
 #pragma once
-#include "BPlusTree.cpp"
 
-/*                 前向声明                 */
+/*                                          */
+/*                前向声明                  */
+/*                                          */
 
 template<typename KeyType, typename DataType, int rank>
 class BPlusInternalNode;
@@ -10,17 +11,19 @@ template<typename KeyType, typename DataType, int rank>
 class BPlusTree;
 
 /*                                          */
-/*                                          */
 /*                  异常                    */
-/*                                          */
 /*                                          */
 
 enum class BPlusTreeException { DuplicateKey, KeyNotExist };
 
 /*                                          */
 /*                                          */
-/*                B+树结点                  */
+/*              B+树结点基类                */
+/*                  虚类                    */
 /*                                          */
+
+/*                                          */
+/*                  定义                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
@@ -33,11 +36,12 @@ public:
     void setParent(BPlusInternalNode<KeyType, DataType, rank> *parent) { this->parent = parent; }
 
     virtual void splitNode() = 0;
+    //virtual void print() const = 0;
+    virtual void clearDescendent() = 0;
 
     virtual bool findData(const KeyType &guideKey) const = 0;
     virtual void insertData(const KeyType &newKey, const DataType &newData) = 0;
     virtual void removeData(const KeyType &guideKey) = 0;
-    virtual void print() const = 0;
 
 protected:
     int keyNum;
@@ -47,6 +51,16 @@ protected:
     friend class BPlusTree<KeyType, DataType, rank>;
 };
 
+/*                                          */
+/*                                          */
+/*              B+树叶子结点                */
+/*                                          */
+/*                                          */
+
+/*                                          */
+/*                  定义                    */
+/*                                          */
+
 template<typename KeyType, typename DataType, int rank>
 class BPlusLeafNode : public BPlusNode<KeyType, DataType, rank> {
 public:
@@ -55,15 +69,16 @@ public:
 
     void splitNode() override;
     void mergeRight();
+    void clearDescendent() override {};
+    //void print() const override {
+    //    std::cout << this->keyNum << "-Leaf:";
+    //    for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "," << data[i] << "]";
+    //    std::cout << std::endl;
+    //}
 
     bool findData(const KeyType &guideKey) const override;
     void insertData(const KeyType &newKey, const DataType &newData) override;
     void removeData(const KeyType &guideKey) override;
-    void print() const override { 
-        std::cout << this->keyNum << "-Leaf:";
-        for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "," << data[i] << "]";
-        std::cout << std::endl;
-    }
 
 private:
     BPlusLeafNode<KeyType, DataType, rank> *nextLeaf;
@@ -71,39 +86,8 @@ private:
     DataType data[rank + 1];
 };
 
-template<typename KeyType, typename DataType, int rank>
-class BPlusInternalNode : public BPlusNode<KeyType, DataType, rank> {
-public:
-    BPlusInternalNode(BPlusNode<KeyType, DataType, rank> *firstChild) : BPlusNode<KeyType, DataType, rank>() { child[0] = firstChild; firstChild->setParent(this); }
-    ~BPlusInternalNode() = default;
-
-    int findNextPath(const KeyType &guideKey) const;
-    void addKey(const KeyType &newKey, BPlusNode<KeyType, DataType, rank> *newChild, bool childAtRight = true);
-    void changeKey(const KeyType &oldKey, const KeyType &newKey);
-    void deleteKey(const KeyType &guideKey, bool childAtRight = true);
-
-    void splitNode() override;
-
-    bool findData(const KeyType &guideKey) const override;
-    void insertData(const KeyType &newKey, const DataType &newData) override;
-    void removeData(const KeyType &guideKey) override;
-    void print() const override {
-        std::cout << this->keyNum << "-Internal:";
-        for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "]";
-        std::cout << std::endl;
-        for (int i = 0; i <= this->keyNum; i++) child[i]->print();
-    }
-
-    friend class BPlusTree<KeyType, DataType, rank>;
-
-private:
-    BPlusNode<KeyType, DataType, rank> *child[rank + 1];
-};
-
 /*                                          */
-/*                                          */
-/*            B+树叶子结点实现              */
-/*                                          */
+/*                  实现                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
@@ -131,7 +115,7 @@ void BPlusLeafNode<KeyType, DataType, rank>::mergeRight() {
     for (int i = 0; i < next->keyNum; i++) this->insertData(next->key[i], next->data[i]);
     this->parent->deleteKey(next->key[0]);
     nextLeaf = next->nextLeaf;
-    if(nextLeaf) nextLeaf->prevLeaf = this;
+    if (nextLeaf) nextLeaf->prevLeaf = this;
     delete next;
 }
 
@@ -196,8 +180,46 @@ void BPlusLeafNode<KeyType, DataType, rank>::removeData(const KeyType &guideKey)
 
 /*                                          */
 /*                                          */
-/*            B+树内部结点实现              */
+/*              B+树内部结点                */
 /*                                          */
+/*                                          */
+
+/*                                          */
+/*                  定义                    */
+/*                                          */
+
+template<typename KeyType, typename DataType, int rank>
+class BPlusInternalNode : public BPlusNode<KeyType, DataType, rank> {
+public:
+    BPlusInternalNode(BPlusNode<KeyType, DataType, rank> *firstChild) : BPlusNode<KeyType, DataType, rank>() { child[0] = firstChild; firstChild->setParent(this); }
+    ~BPlusInternalNode() = default;
+
+    int findNextPath(const KeyType &guideKey) const;
+    void splitNode() override;
+    void clearDescendent() override;
+    //void print() const override {
+    //    std::cout << this->keyNum << "-Internal:";
+    //    for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "]";
+    //    std::cout << std::endl;
+    //    for (int i = 0; i <= this->keyNum; i++) child[i]->print();
+    //}
+
+    void addKey(const KeyType &newKey, BPlusNode<KeyType, DataType, rank> *newChild, bool childAtRight = true);
+    void changeKey(const KeyType &oldKey, const KeyType &newKey);
+    void deleteKey(const KeyType &guideKey, bool childAtRight = true);
+
+    bool findData(const KeyType &guideKey) const override;
+    void insertData(const KeyType &newKey, const DataType &newData) override;
+    void removeData(const KeyType &guideKey) override;
+
+    friend class BPlusTree<KeyType, DataType, rank>;
+
+private:
+    BPlusNode<KeyType, DataType, rank> *child[rank + 1];
+};
+
+/*                                          */
+/*                  实现                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
@@ -210,6 +232,26 @@ int BPlusInternalNode<KeyType, DataType, rank>::findNextPath(const KeyType &guid
     }
     if (guideKey >= this->key[right]) right++;
     return right;
+}
+
+template<typename KeyType, typename DataType, int rank>
+void BPlusInternalNode<KeyType, DataType, rank>::splitNode() {
+    int leftKeyNum = this->keyNum / 2;
+    BPlusInternalNode *newNode = new BPlusInternalNode(child[leftKeyNum + 1]);
+
+    for (int i = leftKeyNum + 1; i < this->keyNum; i++) newNode->addKey(this->key[i], child[i + 1]);
+    this->keyNum = leftKeyNum;
+    if (!this->parent) this->parent = new BPlusInternalNode<KeyType, DataType, rank>(this);
+    newNode->parent = this->parent;
+    this->parent->addKey(this->key[leftKeyNum], newNode);
+}
+
+template<typename KeyType, typename DataType, int rank>
+void BPlusInternalNode<KeyType, DataType, rank>::clearDescendent() {
+    for (int i = 0; i <= this->keyNum; i++) {
+        child[i]->clearDescendent();
+        delete child[i];
+    }
 }
 
 template<typename KeyType, typename DataType, int rank>
@@ -243,18 +285,6 @@ void BPlusInternalNode<KeyType, DataType, rank>::deleteKey(const KeyType &guideK
     }
     if (!childAtRight) child[i] = child[i + 1];
     this->keyNum--;
-}
-
-template<typename KeyType, typename DataType, int rank>
-void BPlusInternalNode<KeyType, DataType, rank>::splitNode() {
-    int leftKeyNum = this->keyNum / 2;
-    BPlusInternalNode *newNode = new BPlusInternalNode(child[leftKeyNum + 1]);
-
-    for (int i = leftKeyNum + 1; i < this->keyNum; i++) newNode->addKey(this->key[i], child[i + 1]);
-    this->keyNum = leftKeyNum;
-    if (!this->parent) this->parent = new BPlusInternalNode<KeyType, DataType, rank>(this);
-    newNode->parent = this->parent;
-    this->parent->addKey(this->key[leftKeyNum], newNode);
 }
 
 template<typename KeyType, typename DataType, int rank>
@@ -320,8 +350,16 @@ void BPlusInternalNode<KeyType, DataType, rank>::removeData(const KeyType &guide
 /*                                          */
 /*                                          */
 
+/*                                          */
+/*                  定义                    */
+/*                                          */
+
+class BPlusTreeInterface {
+    virtual void print() const {};
+}; // 供IndexManager用
+
 template<typename KeyType, typename DataType, int rank>
-class BPlusTree {
+class BPlusTree: public BPlusTreeInterface {
 public:
     BPlusTree() : root(new BPlusLeafNode<KeyType, DataType, rank>()) {}
     ~BPlusTree();
@@ -329,17 +367,21 @@ public:
     bool findData(const KeyType &key) const;
     void insertData(const KeyType &key, const DataType &data);
     void removeData(const KeyType &key);
-    //void updateData(KeyType key, DataType &data);
-    void print() const { root->print(); }
+    //void print() const { root->print(); }
 private:
 
 private:
     BPlusNode<KeyType, DataType, rank> *root;
 };
 
+/*                                          */
+/*                  实现                    */
+/*                                          */
+
 template<typename KeyType, typename DataType, int rank>
 BPlusTree<KeyType, DataType, rank>::~BPlusTree() {
-    
+    root->clearDescendent();
+    delete root;
 }
 
 template<typename KeyType, typename DataType, int rank>

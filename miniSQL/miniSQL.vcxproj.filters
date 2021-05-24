@@ -21,12 +21,18 @@
     <ClCompile Include="BPlusTree.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MiniSQLIndexManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BPlusTree.h">
       <Filter>源文件</Filter>
     </ClInclude>
     <ClInclude Include="MiniSQLException.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLIndexManager.h">
       <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
