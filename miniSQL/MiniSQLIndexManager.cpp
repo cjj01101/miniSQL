@@ -3,29 +3,29 @@
 using namespace std;
 
 void IndexManager_test() {
-    IndexManager IM;
-    cout << IM.findIndex<int, char>("abc", { "a" }) << endl;
+    CatalogManager CM;
+    IndexManager IM(&CM);
+    cout << IM.findIndex<tuple<int, char>>("abc", { "a" }) << endl;
 
-    cout << IM.createIndex<int, char>("abc", { "a" }) << endl;
-    cout << IM.createIndex<int, char>("abc", { "a" }) << endl;
-    cout << IM.createIndex<int, char>("another database", { "key" }) << endl;
+    cout << IM.createIndex<tuple<int, char>>("abc", { "a" }) << endl;
+    cout << IM.createIndex<tuple<int, char>>("abc", { "a" }) << endl;
+    cout << IM.createIndex<tuple<int, char>>("another database", { "key" }) << endl;
 
-    cout << IM.findIndex<int, char>("abc", { "a" }) << endl;
-    cout << IM.findIndex<int, char>("abc", { "b" }) << endl;
-    cout << IM.findIndex<int, int>("abc", { "a" }) << endl;
-    cout << IM.findIndex<int, char>("another database", { "key" }) << endl;
-    cout << IM.findIndex<int, char>("another database", { "key" }) << endl;
+    cout << IM.findIndex<tuple<int, char>>("abc", { "a" }) << endl;
+    cout << IM.findIndex<tuple<int, char>>("abc", { "b" }) << endl;
+    cout << IM.findIndex<tuple<int, int>>("abc", { "a" }) << endl;
+    cout << IM.findIndex<tuple<int, char>>("another database", { "key" }) << endl;
 
-    cout << IM.createIndex<int, char>("abc", { "b" }) << endl;
-    cout << IM.findIndex<int, char>("abc", { "b" }) << endl;
+    cout << IM.createIndex<tuple<int, char>>("abc", { "b" }) << endl;
+    cout << IM.findIndex<tuple<int, char>>("abc", { "b" }) << endl;
 
-    cout << IM.dropIndex<int, int>("abc", { "a" }) << endl;
-    cout << IM.dropIndex<int, char>("abc", { "a" }) << endl;
-    cout << IM.dropIndex<int, char>("abc", { "c" }) << endl;
+    cout << IM.dropIndex<tuple<int, int>>("abc", { "a" }) << endl;
+    cout << IM.dropIndex<tuple<int, char>>("abc", { "a" }) << endl;
+    cout << IM.dropIndex<tuple<int, char>>("abc", { "c" }) << endl;
 
-    cout << IM.findIndex<int, char>("abc", { "a" }) << endl;
-    cout << IM.findIndex<int, char>("abc", { "b" }) << endl;
+    cout << IM.findIndex<tuple<int, char>>("abc", { "a" }) << endl;
+    cout << IM.findIndex<tuple<int, char>>("abc", { "b" }) << endl;
 
-    cout << IM.dropIndex<int, char>("abc", { "b" }) << endl;
-    cout << IM.findIndex<int, char>("abc", { "b" }) << endl;
+    cout << IM.dropIndex<tuple<int, char>>("abc", { "b" }) << endl;
+    cout << IM.findIndex<tuple<int, char>>("abc", { "b" }) << endl;
 }

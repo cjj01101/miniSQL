@@ -4,17 +4,15 @@
 /*                前向声明                  */
 /*                                          */
 
-template<typename KeyType, typename DataType, int rank>
-class BPlusInternalNode;
-
-template<typename KeyType, typename DataType, int rank>
-class BPlusTree;
+template<typename KeyType, typename DataType, int rank> class BPlusLeafNode;
+template<typename KeyType, typename DataType, int rank> class BPlusInternalNode;
+template<typename KeyType, typename DataType, int rank> class BPlusTree;
 
 /*                                          */
 /*                  异常                    */
 /*                                          */
 
-enum class BPlusTreeException { DuplicateKey, KeyNotExist };
+enum class BPlusTreeException { DuplicateKey, KeyNotExist, IteratorOverBounds };
 
 /*                                          */
 /*                                          */
@@ -66,6 +64,31 @@ class BPlusLeafNode : public BPlusNode<KeyType, DataType, rank> {
 public:
     BPlusLeafNode() : BPlusNode<KeyType, DataType, rank>(), prevLeaf(nullptr), nextLeaf(nullptr) {}
     ~BPlusLeafNode() = default;
+
+    /*                                          */
+    /*                                          */
+    /*             叶子结点迭代器               */
+    /*                                          */
+    /*                                          */
+
+    class iter {
+    public:
+        iter(BPlusLeafNode<DataType, KeyType, rank> *content = nullptr, int offset = 0) : content(content), offset(offset) {}
+
+        void next() {
+            if (offset < content->keyNum) offset = offset + 1;
+            else { content = content->nextLeaf; offset = 0; }
+        }
+        bool valid() const { return (nullptr != content); }
+        DataType operator*() const {
+            if (!valid()) throw BPlusTreeException::IteratorOverBounds;
+            return content->data[offset];
+        }
+
+    private:
+        BPlusLeafNode<DataType, KeyType, rank> *content;
+        int offset;
+    };
 
     void splitNode() override;
     void mergeRight();
@@ -368,7 +391,6 @@ public:
     void insertData(const KeyType &key, const DataType &data);
     void removeData(const KeyType &key);
     //void print() const { root->print(); }
-private:
 
 private:
     BPlusNode<KeyType, DataType, rank> *root;

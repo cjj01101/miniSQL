@@ -153,12 +153,19 @@
   <ItemGroup>
     <ClCompile Include="BPlusTree.cpp" />
     <ClCompile Include="miniSQL.cpp" />
+    <ClCompile Include="MiniSQLBufferManager.cpp" />
+    <ClCompile Include="MiniSQLCatalogManager.cpp" />
+    <ClCompile Include="MiniSQLException.cpp" />
     <ClCompile Include="MiniSQLIndexManager.cpp" />
+    <ClCompile Include="MiniSQLMeta.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BPlusTree.h" />
+    <ClInclude Include="MiniSQLBufferManager.h" />
+    <ClInclude Include="MiniSQLCatalogManager.h" />
     <ClInclude Include="MiniSQLException.h" />
     <ClInclude Include="MiniSQLIndexManager.h" />
+    <ClInclude Include="MiniSQLMeta.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

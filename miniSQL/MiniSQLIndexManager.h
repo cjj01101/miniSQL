@@ -1,61 +1,56 @@
 #pragma once
 
-#include "BPlusTree.h"
-#include <initializer_list>
-#include <vector>
-#include <set>
-#include <map>
+#include "MiniSQLCatalogManager.h"
 #include <tuple>
 using namespace std;
 
-struct index_info {
-    struct index_info(initializer_list<string> keys, BPlusTreeInterface *file): index_key(keys), index_tree(file) {}
-    set<string> index_key;
-    BPlusTreeInterface *index_tree;
-};
-
 class IndexManager {
 public:
-    template<typename... KeyTypes>
-    BPlusTreeInterface* findIndex(string database, initializer_list<string> keys);
+    IndexManager(CatalogManager *metadata) : metadata(metadata) {}
 
-    template<typename... KeyTypes>
-    bool createIndex(string database, initializer_list<string> keys);
+    template<typename KeyType>
+    BPlusTreeInterface* findIndex(const string &database, initializer_list<string> keys) const;
 
-    template<typename... KeyTypes>
-    bool dropIndex(string database, initializer_list<string> keys);
+    template<typename KeyType>
+    bool createIndex(const string &database, initializer_list<string> keys);
+
+    template<typename KeyType>
+    bool dropIndex(const string &database, initializer_list<string> keys);
 private:
-    map<string, vector<struct index_info>> index;
+    CatalogManager *metadata;
 };
 
-template<typename... KeyTypes>
-BPlusTreeInterface* IndexManager::findIndex(string database, initializer_list<string> keys) {
-    if (index.end() == index.find(database)) return nullptr;
-    for (auto index_file = index[database].begin(); index_file != index[database].end(); index_file++) {
-        auto tree = (*index_file).index_tree;
-        auto key = (*index_file).index_key;
-        if (dynamic_cast<BPlusTree<tuple<KeyTypes...>, int, 200>*>(tree) && std::equal(key.begin(), key.end(), keys.begin(), keys.end()))
-            return tree;
+template<typename KeyType>
+BPlusTreeInterface* IndexManager::findIndex(const string &database, initializer_list<string> keys) const {
+    index_file &index = metadata->getIndexFile();
+    if(index.end() == index.find(database)) return nullptr;
+    for (auto index_data = index[database].begin(); index_data != index[database].end(); index_data++) {
+        auto index_tree = index_data->tree;
+        auto index_keys = index_data->keys;
+        if (dynamic_cast<BPlusTree<KeyType, int, 200>*>(index_tree) && std::equal(index_keys.begin(), index_keys.end(), keys.begin(), keys.end()))
+            return index_tree;
     }
     return nullptr;
 }
 
-template<typename... KeyTypes>
-bool IndexManager::createIndex(string database, initializer_list<string> keys) {
-    if (findIndex<KeyTypes...>(database, keys)) return false;
-    BPlusTreeInterface *newIndex = new BPlusTree<tuple<KeyTypes...>, int, 200>();
+template<typename KeyType>
+bool IndexManager::createIndex(const string &database, initializer_list<string> keys) {
+    index_file &index = metadata->getIndexFile();
+    if (findIndex<KeyType>(database, keys)) return false;
+    BPlusTreeInterface *newIndex = new BPlusTree<KeyType, int, 200>();
     index[database].push_back({ keys, newIndex });
     return true;
 }
 
-template<typename... KeyTypes>
-bool IndexManager::dropIndex(string database, initializer_list<string> keys) {
+template<typename KeyType>
+bool IndexManager::dropIndex(const string &database, initializer_list<string> keys) {
+    index_file &index = metadata->getIndexFile();
     if (index.end() == index.find(database)) return false;
-    for (auto index_file = index[database].begin(); index_file != index[database].end(); index_file++) {
-        auto tree = (*index_file).index_tree;
-        auto key = (*index_file).index_key;
-        if (dynamic_cast<BPlusTree<tuple<KeyTypes...>, int, 200>*>(tree) && std::equal(key.begin(), key.end(), keys.begin(), keys.end())) {
-            index[database].erase(index_file);
+    for (auto index_data = index[database].begin(); index_data != index[database].end(); index_data++) {
+        auto index_tree = index_data->tree;
+        auto index_keys = index_data->keys;
+        if (dynamic_cast<BPlusTree<KeyType, int, 200>*>(index_tree) && std::equal(index_keys.begin(), index_keys.end(), keys.begin(), keys.end())) {
+            index[database].erase(index_data);
             return true;
         }
     }
