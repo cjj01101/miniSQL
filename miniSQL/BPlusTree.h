@@ -1,7 +1,8 @@
 #pragma once
+#define TEST 100
 
 /*                                          */
-/*                Ç°ÏòÉùÃ÷                  */
+/*                Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½                  */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank> class BPlusLeafNode;
@@ -9,19 +10,19 @@ template<typename KeyType, typename DataType, int rank> class BPlusInternalNode;
 template<typename KeyType, typename DataType, int rank> class BPlusTree;
 
 /*                                          */
-/*                  Òì³£                    */
+/*                  ï¿½ì³£                    */
 /*                                          */
 
 enum class BPlusTreeException { DuplicateKey, KeyNotExist, IteratorOverBounds };
 
 /*                                          */
 /*                                          */
-/*              B+Ê÷½áµã»ùÀà                */
-/*                  ÐéÀà                    */
+/*              B+ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½                */
+/*                  ï¿½ï¿½ï¿½ï¿½                    */
 /*                                          */
 
 /*                                          */
-/*                  ¶¨Òå                    */
+/*                  ï¿½ï¿½ï¿½ï¿½                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
@@ -51,12 +52,12 @@ protected:
 
 /*                                          */
 /*                                          */
-/*              B+Ê÷Ò¶×Ó½áµã                */
+/*              B+ï¿½ï¿½Ò¶ï¿½Ó½ï¿½ï¿½                */
 /*                                          */
 /*                                          */
 
 /*                                          */
-/*                  ¶¨Òå                    */
+/*                  ï¿½ï¿½ï¿½ï¿½                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
@@ -67,7 +68,7 @@ public:
 
     /*                                          */
     /*                                          */
-    /*             Ò¶×Ó½áµãµü´úÆ÷               */
+    /*             Ò¶ï¿½Ó½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½               */
     /*                                          */
     /*                                          */
 
@@ -110,7 +111,7 @@ private:
 };
 
 /*                                          */
-/*                  ÊµÏÖ                    */
+/*                  Êµï¿½ï¿½                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
@@ -203,12 +204,12 @@ void BPlusLeafNode<KeyType, DataType, rank>::removeData(const KeyType &guideKey)
 
 /*                                          */
 /*                                          */
-/*              B+Ê÷ÄÚ²¿½áµã                */
+/*              B+ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½                */
 /*                                          */
 /*                                          */
 
 /*                                          */
-/*                  ¶¨Òå                    */
+/*                  ï¿½ï¿½ï¿½ï¿½                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
@@ -242,7 +243,7 @@ private:
 };
 
 /*                                          */
-/*                  ÊµÏÖ                    */
+/*                  Êµï¿½ï¿½                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
@@ -369,17 +370,17 @@ void BPlusInternalNode<KeyType, DataType, rank>::removeData(const KeyType &guide
 
 /*                                          */
 /*                                          */
-/*                  B+Ê÷                    */
+/*                  B+ï¿½ï¿½                    */
 /*                                          */
 /*                                          */
 
 /*                                          */
-/*                  ¶¨Òå                    */
+/*                  ï¿½ï¿½ï¿½ï¿½                    */
 /*                                          */
 
 class BPlusTreeInterface {
     virtual void print() const {};
-}; // ¹©IndexManagerÓÃ
+}; // ï¿½ï¿½IndexManagerï¿½ï¿½
 
 template<typename KeyType, typename DataType, int rank>
 class BPlusTree: public BPlusTreeInterface {
@@ -397,7 +398,7 @@ private:
 };
 
 /*                                          */
-/*                  ÊµÏÖ                    */
+/*                  Êµï¿½ï¿½                    */
 /*                                          */
 
 template<typename KeyType, typename DataType, int rank>
