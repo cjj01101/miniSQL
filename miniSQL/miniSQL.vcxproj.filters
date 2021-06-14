@@ -24,15 +24,36 @@
     <ClCompile Include="MiniSQLIndexManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MiniSQLCatalogManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MiniSQLException.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MiniSQLMeta.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MiniSQLBufferManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BPlusTree.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
     <ClInclude Include="MiniSQLException.h">
       <Filter>源文件</Filter>
     </ClInclude>
     <ClInclude Include="MiniSQLIndexManager.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLCatalogManager.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLMeta.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLBufferManager.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BPlusTree.h">
       <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
