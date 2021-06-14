@@ -38,9 +38,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BPlusTree.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
     <ClInclude Include="MiniSQLException.h">
       <Filter>源文件</Filter>
     </ClInclude>
@@ -54,6 +51,9 @@
       <Filter>源文件</Filter>
     </ClInclude>
     <ClInclude Include="MiniSQLBufferManager.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BPlusTree.h">
       <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>

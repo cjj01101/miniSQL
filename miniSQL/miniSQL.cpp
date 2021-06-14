@@ -10,7 +10,7 @@ extern void Meta_test();
 
 int main()
 {
-    //BPlusTree_test();
+    BPlusTree_test();
     //IndexManager_test();
-    BufferManager_test();
+    //BufferManager_test();
 }
