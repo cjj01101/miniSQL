@@ -442,7 +442,7 @@ template<typename KeyType, typename DataType, int rank>
 class BPlusTree: public BPlusTreeInterface {
 public:
     using NodeType = BPlusNode<KeyType, DataType, rank>;
-    BPlusTree(BufferManager *buffer = nullptr, const string &filename = "");
+    BPlusTree(BufferManager *buffer, const string &filename);
     ~BPlusTree() = default;
 
     bool findData(const KeyType &key) const;

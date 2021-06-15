@@ -28,7 +28,8 @@ using index_file = map<string, vector<index_info>>;
 
 class CatalogManager {
 public:
-    index_file &getIndexFile() { return index; };
+    index_file &getIndexFile() { return index; }
+    table_file &getTableFile() { return table; }
 
 private:
     table_file table;

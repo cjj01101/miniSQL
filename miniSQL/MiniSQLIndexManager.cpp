@@ -3,8 +3,9 @@
 using namespace std;
 
 void IndexManager_test() {
+    BufferManager BM;
     CatalogManager CM;
-    IndexManager IM(&CM);
+    IndexManager IM(&BM, &CM);
     /*cout << IM.findIndex<tuple<int, char>>("abc", { "a" }) << endl;
 
     cout << IM.createIndex<tuple<int, char>>("abc", { "a" }) << endl;

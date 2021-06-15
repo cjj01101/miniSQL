@@ -6,7 +6,7 @@ using namespace std;
 
 class IndexManager {
 public:
-    IndexManager(CatalogManager *metadata) : metadata(metadata) {}
+    IndexManager(BufferManager *buffer, CatalogManager *metadata) : buffer(buffer), metadata(metadata) {}
 
     template<typename KeyType>
     BPlusTreeInterface* findIndex(const string &database, initializer_list<string> keys) const;
@@ -17,6 +17,7 @@ public:
     template<typename KeyType>
     bool dropIndex(const string &database, initializer_list<string> keys);
 private:
+    BufferManager *buffer;
     CatalogManager *metadata;
 };
 
@@ -37,7 +38,7 @@ template<typename KeyType>
 bool IndexManager::createIndex(const string &database, initializer_list<string> keys) {
     index_file &index = metadata->getIndexFile();
     if (findIndex<KeyType>(database, keys)) return false;
-    BPlusTreeInterface *newIndex = new BPlusTree<KeyType, int, 200>();
+    BPlusTreeInterface *newIndex = new BPlusTree<KeyType, int, 200>(buffer);
     index[database].push_back({ keys, newIndex });
     return true;
 }
