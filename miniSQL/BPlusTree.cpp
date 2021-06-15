@@ -5,7 +5,7 @@ using namespace std;
 void BPlusTree_test() {
     BufferManager BM;
     BPlusTree<int, int, 3> BPT(&BM, "../test.index");
-    const int insert_list[] = { 2,4,3,1,5,0,6,-1,7,8,6,2,30,40,25,24,15,16,14,13,11,12,35,9,10 };
+    const int insert_list[] = { 2,4,3,1,5,0,6,-1,7,8,6,2,30,40,25,24,15,16,14,13,11,12,35,9,10,37,31,27 };
     for (auto i : insert_list) {
         try {
             BPT.insertData(i, i);
@@ -20,11 +20,11 @@ void BPlusTree_test() {
         cout << "----------------\n";
     }
 
-    const int remove_list[] = { 3,2,1,7,8,9,5,6,4,10,12,11,13,60,25,30,24,16,35,-1,40,14,15,0 };
+    const int remove_list[] = { 3,2,1,7,8,9,5,6,4,10,27,12,11,37,13,60,25,30,31,24,16,35,-1,40,14,15,0 };
 
     for (auto i : remove_list) {
-        if (BPT.findData(i)) cout << i << "exists." << endl;
-        else cout << i << "doesn't exist." << endl;
+        if (BPT.findData(i)) cout << i << " exists." << endl;
+        else cout << i << " doesn't exist." << endl;
     }
 
     for (auto i : remove_list) {
