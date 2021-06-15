@@ -14,7 +14,6 @@ struct attr_info {
     Type type;
 };
 struct table_info {
-    string filename;
     vector<attr_info> attrs;
     int total_length;
     int relation_count;
