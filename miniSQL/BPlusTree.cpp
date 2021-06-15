@@ -4,7 +4,7 @@ using namespace std;
 
 void BPlusTree_test() {
     BufferManager BM;
-    BPlusTree<int, int, 3> BPT(&BM, "../test.index");
+    BPlusTree<int, int, 5> BPT(&BM, "../test.index");
     const int insert_list[] = { 2,4,3,1,5,0,6,-1,7,8,6,2,30,40,25,24,15,16,14,13,11,12,35,9,10,37,31,27 };
     for (auto i : insert_list) {
         try {
@@ -13,9 +13,6 @@ void BPlusTree_test() {
         }
         catch (BPlusTreeException &e) {
             if (e == BPlusTreeException::DuplicateKey) cout << i << " is Duplicate Key!\n";
-        }
-        catch (...) {
-            cout << "Error";
         }
         cout << "----------------\n";
     }

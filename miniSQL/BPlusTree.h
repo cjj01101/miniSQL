@@ -55,7 +55,7 @@ public:
         : buffer(buffer), filename(filename), self(self), isLeaf(isLeaf), keyNum(0), prevLeaf(0), nextLeaf(0) {}
     BPlusNode(BufferManager *buffer, const string& filename, int self);
     BPlusNode(const BPlusNode &) = delete;
-    ~BPlusNode() { writeBackToBuffer(); }
+    ~BPlusNode() = default;
 
     void writeBackToBuffer() {
         if (self == 0) return;
@@ -75,7 +75,7 @@ public:
             for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "]";
             std::cout << std::endl;
             for (int i = 0; i <= this->keyNum; i++) {
-                NodeType childNode(buffer, filename, child[i]);
+                const NodeType childNode(buffer, filename, child[i]);
                 childNode.print();
             }
         }
@@ -106,10 +106,10 @@ private:
     bool isLeaf;
     int keyNum;
     KeyType key[rank + 1];
-    int nextLeaf;
-    int prevLeaf;
     int child[rank + 1];
     DataType data[rank + 1];
+    int nextLeaf;
+    int prevLeaf;
 
     friend class BPlusTree<KeyType, DataType, rank>;
 };
@@ -143,53 +143,63 @@ int BPlusNode<KeyType, DataType, rank>::splitNode(NodeType *parentNode) {
 
 template<typename KeyType, typename DataType, int rank>
 int BPlusNode<KeyType, DataType, rank>::splitNode_leaf(NodeType *parentNode) {
+    int retval = 0;
     int leftKeyNum = keyNum / 2;
+
     int newBlock = buffer->allocNewBlock(filename);
     NodeType newNode(buffer, filename, newBlock, true);
 
     if (this->nextLeaf) {
         NodeType nextNode(buffer, filename, nextLeaf);
         nextNode.prevLeaf = newBlock;
+        nextNode.writeBackToBuffer();
     }
+
     newNode.nextLeaf = nextLeaf;
     newNode.prevLeaf = self;
     this->nextLeaf = newBlock;
-
     for (int i = leftKeyNum; i < keyNum; i++) newNode.insertData(parentNode, key[i], data[i]);
+    newNode.writeBackToBuffer();
+
     this->keyNum = leftKeyNum;
     if (!parentNode) {
         int parentBlock = buffer->allocNewBlock(filename);
         NodeType parentNode(buffer, filename, parentBlock, false);
         parentNode.child[0] = self;
         parentNode.addKey(key[leftKeyNum], newBlock);
-        return parentBlock;
+        parentNode.writeBackToBuffer();
+        retval = parentBlock;
     } else {
         parentNode->addKey(key[leftKeyNum], newBlock);
-        return 0;
     }
+
+    return retval;
 }
 
 template<typename KeyType, typename DataType, int rank>
 int BPlusNode<KeyType, DataType, rank>::splitNode_intern(NodeType *parentNode) {
+    int retval = 0;
     int leftKeyNum = keyNum / 2;
+
     int newBlock = buffer->allocNewBlock(filename);
     NodeType newNode(buffer, filename, newBlock, false);
     newNode.child[0] = child[leftKeyNum + 1];
+    for (int i = leftKeyNum + 1; i < keyNum; i++) newNode.addKey(key[i], child[i + 1]);
+    newNode.writeBackToBuffer();
 
-    for (int i = leftKeyNum + 1; i < keyNum; i++) {
-        newNode.addKey(key[i], child[i + 1]);
-    }
     keyNum = leftKeyNum;
     if (!parentNode) {
         int parentBlock = buffer->allocNewBlock(filename);
         NodeType parentNode(buffer, filename, parentBlock, false);
         parentNode.child[0] = self;
         parentNode.addKey(key[leftKeyNum], newBlock);
-        return parentBlock;
+        parentNode.writeBackToBuffer();
+        retval = parentBlock;
     } else {
         parentNode->addKey(key[leftKeyNum], newBlock);
-        return 0;
     }
+
+    return retval;
 }
 
 template<typename KeyType, typename DataType, int rank>
@@ -238,7 +248,7 @@ template<typename KeyType, typename DataType, int rank>
 bool BPlusNode<KeyType, DataType, rank>::findData_intern(const KeyType &guideKey) const {
     int next = findNextPath(guideKey);
 
-    NodeType childNode(buffer, filename, child[next]);
+    const NodeType childNode(buffer, filename, child[next]);
     return childNode.findData(guideKey);
 }
 
@@ -262,10 +272,9 @@ template<typename KeyType, typename DataType, int rank>
 int BPlusNode<KeyType, DataType, rank>::insertData_intern(NodeType *parentNode, const KeyType &newKey, const DataType &newData) {
     int next = findNextPath(newKey);
 
-    {
-        NodeType childNode(buffer, filename, child[next]);
-        childNode.insertData(this, newKey, newData);
-    }
+    NodeType childNode(buffer, filename, child[next]);
+    childNode.insertData(this, newKey, newData);
+    childNode.writeBackToBuffer();
 
     if (keyNum >= rank) return splitNode(parentNode);
     else return 0;
@@ -296,6 +305,8 @@ void BPlusNode<KeyType, DataType, rank>::removeData_leaf(NodeType *parentNode, c
             prevNode.removeData(parentNode, xKey);
             insertData(parentNode, xKey, xData);
             parentNode->changeKey(guideKey, xKey);
+
+            prevNode.writeBackToBuffer();
         }
         else if (next && nextNode.keyNum > (rank + 1) / 2) {
             KeyType xKey = nextNode.key[0];
@@ -304,12 +315,16 @@ void BPlusNode<KeyType, DataType, rank>::removeData_leaf(NodeType *parentNode, c
             nextNode.removeData(parentNode, xKey);
             insertData(parentNode, xKey, xData);
             parentNode->changeKey(xKey, parentNewKey);
+
+            nextNode.writeBackToBuffer();
         }
         else if (prev) {
             for (int i = 0; i < keyNum; i++) prevNode.insertData(nullptr, key[i], data[i]);
             parentNode->deleteKey(key[0]);
             prevNode.nextLeaf = nextLeaf;
             if (nextLeaf) nextNode.prevLeaf = prevLeaf;
+
+            prevNode.writeBackToBuffer();
         }
         else if (next) {
             for (int i = 0; i < nextNode.keyNum; i++) insertData(nullptr, nextNode.key[i], nextNode.data[i]);
@@ -318,6 +333,7 @@ void BPlusNode<KeyType, DataType, rank>::removeData_leaf(NodeType *parentNode, c
             if (nextLeaf) {
                 NodeType newNextNode(buffer, filename, nextLeaf);
                 newNextNode.prevLeaf = self;
+                newNextNode.writeBackToBuffer();
             }
         }
     }
@@ -326,10 +342,9 @@ void BPlusNode<KeyType, DataType, rank>::removeData_leaf(NodeType *parentNode, c
 template<typename KeyType, typename DataType, int rank>
 void BPlusNode<KeyType, DataType, rank>::removeData_intern(NodeType *parentNode, const KeyType &guideKey) {
     int next = findNextPath(guideKey);
-    {
-        NodeType childNode(buffer, filename, child[next]);
-        childNode.removeData(this, guideKey);
-    }
+    NodeType childNode(buffer, filename, child[next]);
+    childNode.removeData(this, guideKey);
+    childNode.writeBackToBuffer();
 
     if (keyNum < (rank - 1) / 2 && parentNode) {
         int ind = parentNode->findNextPath(key[0]);
@@ -346,6 +361,8 @@ void BPlusNode<KeyType, DataType, rank>::removeData_intern(NodeType *parentNode,
             addKey(pKey, sChild, false);
             parentNode->changeKey(pKey, sKey);
             prevNode.deleteKey(sKey);
+
+            prevNode.writeBackToBuffer();
         }
         else if (next && nextNode.keyNum > (rank - 1) / 2) {
             KeyType pKey = parentNode->key[ind];
@@ -354,12 +371,16 @@ void BPlusNode<KeyType, DataType, rank>::removeData_intern(NodeType *parentNode,
             addKey(pKey, sChild);
             parentNode->changeKey(pKey, sKey);
             nextNode.deleteKey(sKey, false);
+
+            nextNode.writeBackToBuffer();
         }
         else if (prev) {
             KeyType pKey = parentNode->key[ind - 1];
             prevNode.addKey(pKey, child[0]);
             for (int i = 0; i < keyNum; i++) prevNode.addKey(key[i], child[i + 1]);
             parentNode->deleteKey(pKey);
+
+            prevNode.writeBackToBuffer();
         }
         else if (next) {
             KeyType pKey = parentNode->key[ind];
@@ -428,7 +449,7 @@ public:
     void insertData(const KeyType &key, const DataType &data);
     void removeData(const KeyType &key);
     void print() const {
-        NodeType rootNode(buffer, filename, root);
+        const NodeType rootNode(buffer, filename, root);
         rootNode.print();
     }
 
@@ -456,12 +477,13 @@ BPlusTree<KeyType, DataType, rank>::BPlusTree(BufferManager *buffer, const strin
         root = buffer->allocNewBlock(filename);
         buffer->setBlockContent(filename, META_PAGE_ID, 0, reinterpret_cast<char*>(&root), sizeof(root));
         NodeType rootNode(buffer, filename, root, true);
+        rootNode.writeBackToBuffer();
     }
 }
 
 template<typename KeyType, typename DataType, int rank>
 bool BPlusTree<KeyType, DataType, rank>::findData(const KeyType &key) const {
-    NodeType rootNode(buffer, filename, root);
+    const NodeType rootNode(buffer, filename, root);
     return rootNode.findData(key);
 }
 
@@ -469,6 +491,7 @@ template<typename KeyType, typename DataType, int rank>
 void BPlusTree<KeyType, DataType, rank>::insertData(const KeyType &key, const DataType &data){
     NodeType rootNode(buffer, filename, root);
     int newRoot = rootNode.insertData(nullptr, key, data);
+    rootNode.writeBackToBuffer();
     if (newRoot) {
         root = newRoot;
         buffer->setBlockContent(filename, META_PAGE_ID, 0, reinterpret_cast<char*>(&root), sizeof(root));
@@ -479,6 +502,7 @@ template<typename KeyType, typename DataType, int rank>
 void BPlusTree<KeyType, DataType, rank>::removeData(const KeyType &key) {
     NodeType rootNode(buffer, filename, root);
     rootNode.removeData(nullptr, key);
+    rootNode.writeBackToBuffer();
     if (0 == rootNode.keyNum && false == rootNode.isLeaf) {
         root = rootNode.child[0];
         NodeType newRootNode(buffer, filename, root);
