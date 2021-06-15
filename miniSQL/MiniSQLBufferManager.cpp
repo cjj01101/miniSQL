@@ -24,6 +24,7 @@ BufferManager::~BufferManager() {
     for (int i = 0; i < page_num; i++) {//每一页，写回每一块
         if(frame[i].dirty) writeBackToDisk(i, frame[i].filename, frame[i].block_id);
     }
+    delete[] frame;
 }
 
 //获取文件中块对应在内存里的页号(没找到就调用其他函数分配一页)
