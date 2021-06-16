@@ -21,9 +21,22 @@ struct Type {
 };
 
 struct Value {
-    Value(Type type, void *data);
+    Value(Type type, const void *data);
     Value(const Value &rhs);
-    ~Value();
+    ~Value() { delete[](char*)data; };
+
+    template<typename T>
+    typename std::enable_if<std::is_pointer<T>::value, T>::type translate() const;
+
+    template<typename T>
+    typename std::enable_if<!std::is_pointer<T>::value, T>::type translate() const;
+
+    bool operator==(const Value &rhs) const;
+    bool operator!=(const Value &rhs) const { return !(*this == rhs); }
+    bool operator<(const Value &rhs) const;
+    bool operator>(const Value &rhs) const { return (rhs < *this); }
+    bool operator<=(const Value &rhs) const { return !(*this > rhs); }
+    bool operator>=(const Value &rhs) const { return !(*this < rhs); }
 
     Type type;
     void *data;

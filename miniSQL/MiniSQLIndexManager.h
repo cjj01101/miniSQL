@@ -1,7 +1,6 @@
 #pragma once
 
 #include "MiniSQLCatalogManager.h"
-#include <tuple>
 using namespace std;
 
 class IndexManager {
