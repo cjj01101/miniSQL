@@ -12,7 +12,7 @@
 template<typename KeyType, typename DataType, int rank>
 class BPlusTree;
 
-enum class BPlusTreeException { DuplicateKey, KeyNotExist, IteratorOverBounds };
+enum class BPlusTreeException { DuplicateKey, KeyNotExist, IteratorIllegal, IteratorOverBounds };
 
 /*                                          */
 /*                                          */
@@ -27,9 +27,11 @@ enum class BPlusTreeException { DuplicateKey, KeyNotExist, IteratorOverBounds };
 template<typename KeyType, typename DataType, int rank>
 class BPlusNode {
 public:
-    struct storage{
+    using NodeType = BPlusNode<DataType, KeyType, rank>;
+
+    struct storage {
         storage() {}
-        storage(const BPlusNode<KeyType, DataType, rank> &node) {
+        storage(const NodeType &node) {
             isLeaf = node.isLeaf;
             keyNum = node.keyNum;
             nextLeaf = node.nextLeaf;
@@ -50,21 +52,80 @@ public:
         DataType data[rank + 1];
     };
 
-    using NodeType = BPlusNode<DataType, KeyType, rank>;
+    /*                                          */
+    /*                                          */
+    /*             叶子结点迭代器               */
+    /*                                          */
+    /*                                          */
+
+    class iter {
+    public:
+        iter(const NodeType *node, int offset) {
+            if (node == nullptr) {
+                self = 0;
+                this->offset = 0;
+                return;
+            }
+            if (!(node->isLeaf)) throw BPlusTreeException::IteratorIllegal;
+
+            buffer = node->buffer;
+            filename = node->filename;
+            self = node->self;
+            keyNum = node->keyNum;
+            nextLeaf = node->nextLeaf;
+            for (int i = 0; i < keyNum; i++) data[i] = node->data[i];
+            this->offset = offset;
+        }
+        iter(const iter &rhs) = default;
+        ~iter() = default;
+
+        bool valid() const { return (self != 0); }
+        void next() {
+            if (!valid()) throw BPlusTreeException::IteratorOverBounds;
+            if (offset < keyNum - 1) offset++;
+            else if (nextLeaf){
+                NodeType nextNode(buffer, filename, nextLeaf);
+                self = nextNode.self;
+                keyNum = nextNode.keyNum;
+                nextLeaf = nextNode.nextLeaf;
+                for (int i = 0; i < keyNum; i++) data[i] = nextNode.data[i];
+                offset = 0;
+            } else {
+                self = 0;
+                offset = 0;
+            }
+        }
+        DataType operator*() const {
+            if (!valid()) throw BPlusTreeException::IteratorOverBounds;
+            return data[offset];
+        }
+
+        bool operator==(const iter &rhs) const {
+            return (self == rhs.self && offset == rhs.offset);
+        }
+        bool operator!=(const iter &rhs) const { return !(*this == rhs); }
+
+    private:
+        BufferManager *buffer;
+        string filename;
+        int self;
+        int keyNum;
+        DataType data[rank + 1];
+        int nextLeaf;
+        int offset;
+    };
+
     BPlusNode(BufferManager *buffer, const string& filename, int self, bool isLeaf)
         : buffer(buffer), filename(filename), self(self), isLeaf(isLeaf), keyNum(0), prevLeaf(0), nextLeaf(0) {}
     BPlusNode(BufferManager *buffer, const string& filename, int self);
     BPlusNode(const BPlusNode &) = delete;
     ~BPlusNode() = default;
 
-    void writeBackToBuffer() {
-        if (self == 0) return;
-        auto st = storage(*this);
-        buffer->setBlockContent(filename, self, 0, reinterpret_cast<char*>(&st), sizeof(st));
-    }
+    void writeBackToBuffer();
 
-    int splitNode(NodeType *parentNode);
     int findNextPath(const KeyType &guideKey) const;
+    iter getFirst() const;
+    int splitNode(NodeType *parentNode);
     void print() const {
         if (isLeaf) {
             std::cout << this->keyNum << "-Leaf:";
@@ -81,7 +142,8 @@ public:
         }
     }
 
-    bool findData(const KeyType &guideKey) const;
+    bool checkData(const KeyType &guideKey) const;
+    iter findData(const KeyType &guideKey) const;
     int insertData(NodeType *parentNode, const KeyType &newKey, const DataType &newData);
     void removeData(NodeType *parentNode, const KeyType &guideKey);
 
@@ -92,8 +154,10 @@ public:
 private:
     int splitNode_leaf(NodeType *parentNode);
     int splitNode_intern(NodeType *parentNode);
-    bool findData_leaf(const KeyType &guideKey) const;
-    bool findData_intern(const KeyType &guideKey) const;
+    bool checkData_leaf(const KeyType &guideKey) const;
+    bool checkData_intern(const KeyType &guideKey) const;
+    iter findData_leaf(const KeyType &guideKey) const;
+    iter findData_intern(const KeyType &guideKey) const;
     int insertData_leaf(NodeType *parentNode, const KeyType &newKey, const DataType &newData);
     int insertData_intern(NodeType *parentNode, const KeyType &newKey, const DataType &newData);
     void removeData_leaf(NodeType *parentNode, const KeyType &guideKey);
@@ -136,6 +200,36 @@ BPlusNode<KeyType, DataType, rank>::BPlusNode(BufferManager *buffer, const strin
 }
 
 template<typename KeyType, typename DataType, int rank>
+void BPlusNode<KeyType, DataType, rank>::writeBackToBuffer() {
+    if (self == 0) return;
+    auto st = storage(*this);
+    buffer->setBlockContent(filename, self, 0, reinterpret_cast<char*>(&st), sizeof(st));
+}
+
+template<typename KeyType, typename DataType, int rank>
+int BPlusNode<KeyType, DataType, rank>::findNextPath(const KeyType &guideKey) const {
+    int left = 0, right = keyNum - 1;
+    while (left != right) {
+        int mid = (left + right) / 2;
+        if (guideKey < key[mid]) right = mid;
+        else left = mid + 1;
+    }
+    if (guideKey >= key[right]) right++;
+    return right;
+}
+
+template<typename KeyType, typename DataType, int rank>
+typename BPlusNode<KeyType, DataType, rank>::iter BPlusNode<KeyType, DataType, rank>::getFirst() const {
+    if (isLeaf) {
+        if (keyNum > 0) return iter(this, 0);
+        else return iter(nullptr, 0);
+    } else {
+        const NodeType childNode(buffer, filename, child[0]);
+        return childNode.getFirst();
+    }
+}
+
+template<typename KeyType, typename DataType, int rank>
 int BPlusNode<KeyType, DataType, rank>::splitNode(NodeType *parentNode) {
     if (isLeaf) return splitNode_leaf(parentNode);
     else return splitNode_intern(parentNode);
@@ -169,7 +263,8 @@ int BPlusNode<KeyType, DataType, rank>::splitNode_leaf(NodeType *parentNode) {
         parentNode.addKey(key[leftKeyNum], newBlock);
         parentNode.writeBackToBuffer();
         retval = parentBlock;
-    } else {
+    }
+    else {
         parentNode->addKey(key[leftKeyNum], newBlock);
     }
 
@@ -195,7 +290,8 @@ int BPlusNode<KeyType, DataType, rank>::splitNode_intern(NodeType *parentNode) {
         parentNode.addKey(key[leftKeyNum], newBlock);
         parentNode.writeBackToBuffer();
         retval = parentBlock;
-    } else {
+    }
+    else {
         parentNode->addKey(key[leftKeyNum], newBlock);
     }
 
@@ -203,19 +299,13 @@ int BPlusNode<KeyType, DataType, rank>::splitNode_intern(NodeType *parentNode) {
 }
 
 template<typename KeyType, typename DataType, int rank>
-int BPlusNode<KeyType, DataType, rank>::findNextPath(const KeyType &guideKey) const {
-    int left = 0, right = keyNum - 1;
-    while (left != right) {
-        int mid = (left + right) / 2;
-        if (guideKey < key[mid]) right = mid;
-        else left = mid + 1;
-    }
-    if (guideKey >= key[right]) right++;
-    return right;
+bool BPlusNode<KeyType, DataType, rank>::checkData(const KeyType &guideKey) const {
+    if (isLeaf) return checkData_leaf(guideKey);
+    else return checkData_intern(guideKey);
 }
 
 template<typename KeyType, typename DataType, int rank>
-bool BPlusNode<KeyType, DataType, rank>::findData(const KeyType &guideKey) const {
+typename BPlusNode<KeyType, DataType, rank>::iter BPlusNode<KeyType, DataType, rank>::findData(const KeyType &guideKey) const {
     if (isLeaf) return findData_leaf(guideKey);
     else return findData_intern(guideKey);
 }
@@ -233,7 +323,7 @@ void BPlusNode<KeyType, DataType, rank>::removeData(NodeType *parentNode, const 
 }
 
 template<typename KeyType, typename DataType, int rank>
-bool BPlusNode<KeyType, DataType, rank>::findData_leaf(const KeyType &guideKey) const {
+bool BPlusNode<KeyType, DataType, rank>::checkData_leaf(const KeyType &guideKey) const {
     int left = 0, right = keyNum - 1;
     while (left <= right) {
         int mid = (left + right) / 2;
@@ -245,7 +335,27 @@ bool BPlusNode<KeyType, DataType, rank>::findData_leaf(const KeyType &guideKey) 
 }
 
 template<typename KeyType, typename DataType, int rank>
-bool BPlusNode<KeyType, DataType, rank>::findData_intern(const KeyType &guideKey) const {
+bool BPlusNode<KeyType, DataType, rank>::checkData_intern(const KeyType &guideKey) const {
+    int next = findNextPath(guideKey);
+
+    const NodeType childNode(buffer, filename, child[next]);
+    return childNode.checkData(guideKey);
+}
+
+template<typename KeyType, typename DataType, int rank>
+typename BPlusNode<KeyType, DataType, rank>::iter BPlusNode<KeyType, DataType, rank>::findData_leaf(const KeyType &guideKey) const {
+    int left = 0, right = keyNum - 1;
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (guideKey == key[mid]) return iter::iter(this, mid);
+        else if (guideKey < key[mid]) right = mid - 1;
+        else left = mid + 1;
+    }
+    return iter(nullptr, 0);
+}
+
+template<typename KeyType, typename DataType, int rank>
+typename BPlusNode<KeyType, DataType, rank>::iter BPlusNode<KeyType, DataType, rank>::findData_intern(const KeyType &guideKey) const {
     int next = findNextPath(guideKey);
 
     const NodeType childNode(buffer, filename, child[next]);
@@ -254,7 +364,7 @@ bool BPlusNode<KeyType, DataType, rank>::findData_intern(const KeyType &guideKey
 
 template<typename KeyType, typename DataType, int rank>
 int BPlusNode<KeyType, DataType, rank>::insertData_leaf(NodeType *parentNode, const KeyType &newKey, const DataType &newData) {
-    if (findData(newKey)) throw BPlusTreeException::DuplicateKey;
+    if (checkData(newKey)) throw BPlusTreeException::DuplicateKey;
 
     int i;
     for (i = keyNum; i > 0 && key[i - 1] > newKey; i--) {
@@ -282,7 +392,7 @@ int BPlusNode<KeyType, DataType, rank>::insertData_intern(NodeType *parentNode, 
 
 template<typename KeyType, typename DataType, int rank>
 void BPlusNode<KeyType, DataType, rank>::removeData_leaf(NodeType *parentNode, const KeyType &guideKey) {
-    if (!findData(guideKey)) throw BPlusTreeException::KeyNotExist;
+    if (!checkData(guideKey)) throw BPlusTreeException::KeyNotExist;
 
     int i = 0;
     while (key[i] != guideKey) i++;
@@ -445,9 +555,14 @@ public:
     BPlusTree(BufferManager *buffer, const string &filename);
     ~BPlusTree() = default;
 
-    bool findData(const KeyType &key) const;
+    bool checkData(const KeyType &key) const;
+    typename NodeType::iter findData(const KeyType &key) const;
     void insertData(const KeyType &key, const DataType &data);
     void removeData(const KeyType &key);
+
+    const typename NodeType::iter begin();
+    const typename NodeType::iter end() { return NodeType::iter::iter(nullptr, 0); }
+
     void print() const {
         const NodeType rootNode(buffer, filename, root);
         rootNode.print();
@@ -482,7 +597,13 @@ BPlusTree<KeyType, DataType, rank>::BPlusTree(BufferManager *buffer, const strin
 }
 
 template<typename KeyType, typename DataType, int rank>
-bool BPlusTree<KeyType, DataType, rank>::findData(const KeyType &key) const {
+bool BPlusTree<KeyType, DataType, rank>::checkData(const KeyType &key) const {
+    const NodeType rootNode(buffer, filename, root);
+    return rootNode.checkData(key);
+}
+
+template<typename KeyType, typename DataType, int rank>
+typename BPlusNode<KeyType, DataType, rank>::iter BPlusTree<KeyType, DataType, rank>::findData(const KeyType &key) const {
     const NodeType rootNode(buffer, filename, root);
     return rootNode.findData(key);
 }
@@ -508,4 +629,10 @@ void BPlusTree<KeyType, DataType, rank>::removeData(const KeyType &key) {
         NodeType newRootNode(buffer, filename, root);
         buffer->setBlockContent(filename, META_PAGE_ID, 0, reinterpret_cast<char*>(&root), sizeof(root));
     }
+}
+
+template<typename KeyType, typename DataType, int rank>
+const typename BPlusNode<KeyType, DataType, rank>::iter BPlusTree<KeyType, DataType, rank>::begin() {
+    const NodeType rootNode(buffer, filename, root);
+    return rootNode.getFirst();
 }

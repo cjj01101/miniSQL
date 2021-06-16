@@ -38,7 +38,7 @@ template<typename KeyType>
 bool IndexManager::createIndex(const string &database, initializer_list<string> keys) {
     index_file &index = metadata->getIndexFile();
     if (findIndex<KeyType>(database, keys)) return false;
-    BPlusTreeInterface *newIndex = new BPlusTree<KeyType, int, 200>(buffer);
+    BPlusTreeInterface *newIndex = new BPlusTree<KeyType, int, 200>(buffer, "../IMtest.txt");
     index[database].push_back({ keys, newIndex });
     return true;
 }

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "MiniSQLException.h"
 #include <map>
 #include <string>
@@ -27,20 +28,6 @@ struct Value {
     Type type;
     void *data;
 };
-
-Value::Value(Type type, void *data) : type(type) {
-    this->data = new char[type.size];
-    memcpy_s(this->data, type.size, data, type.size);
-}
-
-Value::Value(const Value &rhs) : type(rhs.type) {
-    data = new char[type.size];
-    memcpy_s(data, type.size, rhs.data, type.size);
-}
-
-Value::~Value() {
-    delete[](char*)data;
-}
 
 /*                                          */
 /*                                          */
@@ -72,8 +59,8 @@ struct operation {
 public:
     template<typename T>
     data_wrapper(T data, size_t countOfElements = 1);
-    data_wrapper(const data_wrapper &rhs) : content(rhs.content ? rhs.content->clone() : nullptr) {}
-    ~data_wrapper() { delete content; }
+    data_wrapper(const data_wrapper &rhs) : leaf(rhs.leaf ? rhs.leaf->clone() : nullptr) {}
+    ~data_wrapper() { delete leaf; }
 private:
     class data_holder_interface {
     public:
@@ -92,14 +79,14 @@ private:
         T data;
     };
 
-    data_holder_interface *content;
+    data_holder_interface *leaf;
 };
 
 template<typename T>
 data_wrapper::data_wrapper(T data, size_t countOfElements) {
-    if (std::is_same<T, int>::value) content = new data_holder<int>(data, 1);
-    else if (std::is_same<T, float>::value) content = new data_holder<float>(data, 1);
-    else if (std::is_same<T, char*>::value) content = new data_holder<char>(data, countOfElements);
+    if (std::is_same<T, int>::value) leaf = new data_holder<int>(data, 1);
+    else if (std::is_same<T, float>::value) leaf = new data_holder<float>(data, 1);
+    else if (std::is_same<T, char*>::value) leaf = new data_holder<char>(data, countOfElements);
 }
 
 template<typename T1, typename T2>

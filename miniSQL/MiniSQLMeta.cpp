@@ -1,6 +1,20 @@
 #include "MiniSQLMeta.h"
 #include <iostream>
 
+Value::Value(Type type, void *data) : type(type) {
+    this->data = new char[type.size];
+    memcpy_s(this->data, type.size, data, type.size);
+}
+
+Value::Value(const Value &rhs) : type(rhs.type) {
+    data = new char[type.size];
+    memcpy_s(data, type.size, rhs.data, type.size);
+}
+
+Value::~Value() {
+    delete[](char*)data;
+}
+
 void Meta_test() {
     int a = 3;
     Value v1(Type(BaseType::INT, sizeof(int)), &a);
