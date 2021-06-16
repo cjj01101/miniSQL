@@ -2,6 +2,7 @@
 
 #include "MiniSQLException.h"
 #include <map>
+#include <vector>
 #include <string>
 
 /*                                          */
@@ -41,6 +42,8 @@ struct Value {
     Type type;
     void *data;
 };
+
+using Record = std::vector<Value>;
 
 /*                                          */
 /*                                          */

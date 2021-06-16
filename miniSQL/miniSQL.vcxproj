@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClCompile Include="BPlusTree.cpp" />
     <ClCompile Include="miniSQL.cpp" />
+    <ClCompile Include="MiniSQLAPI.cpp" />
     <ClCompile Include="MiniSQLBufferManager.cpp" />
     <ClCompile Include="MiniSQLCatalogManager.cpp" />
     <ClCompile Include="MiniSQLException.cpp" />
@@ -161,6 +162,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BPlusTree.h" />
+    <ClInclude Include="MiniSQLAPI.h" />
     <ClInclude Include="MiniSQLBufferManager.h" />
     <ClInclude Include="MiniSQLCatalogManager.h" />
     <ClInclude Include="MiniSQLException.h" />

@@ -16,14 +16,14 @@ struct attr_info {
 struct table_info {
     vector<attr_info> attrs;
     int total_length;
-    int relation_count;
+    int record_count;
 };
 using table_file = map<string, table_info>;
 
 struct index_info {
-    index_info(initializer_list<string> keys, BPlusTreeInterface *tree) : keys(keys), tree(tree) {}
+    index_info(string name, initializer_list<string> keys) : name(name), keys(keys) {}
+    string name;
     set<string> keys;
-    BPlusTreeInterface *tree;
 };
 using index_file = map<string, vector<index_info>>;
 
