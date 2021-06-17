@@ -30,6 +30,9 @@ class CatalogManager {
 public:
     index_file &getIndexFile() { return index; }
     table_file &getTableFile() { return table; }
+    bool findIndex(const string &tablename, const string &indexname) const;
+    void addIndexInfo(const string &tablename ,const string &indexname, initializer_list<string> keys);
+    void deleteIndexInfo(const string &tablename, const string &indexname);
 
 private:
     table_file table;

@@ -6,25 +6,19 @@ using namespace std;
 
 class IndexManager {
 public:
-    IndexManager(BufferManager *buffer, CatalogManager *metadata) : buffer(buffer), metadata(metadata) {}
-
-    bool findIndex(const string &table, const string &name) const;
+    IndexManager(BufferManager *buffer) : buffer(buffer) {}
 
     template<typename KeyType>
-    bool createIndex(const string &table, const string &name, initializer_list<string> keys);
+    void createIndex(const string &tablename, const string &indexname, int size) {
+        string filename = "../" + tablename + "_" + indexname + ".index";
+        BPlusTree<KeyType, int, 200> newTree(buffer, filename);
+    }
 
-    bool dropIndex(const string &name);
+    void dropIndex(const string &tablename, const string &indexname) {
+        string filename = "../" + tablename + "_" + indexname + ".index";
+        buffer->setEmpty(filename);
+        remove(filename.data());
+    }
 private:
     BufferManager *buffer;
-    CatalogManager *metadata;
 };
-
-template<typename KeyType>
-bool IndexManager::createIndex(const string &table, const string &name, initializer_list<string> keys) {
-    index_file &index = metadata->getIndexFile();
-    if (findIndex(table, name)) return false;
-    string index_filename = "../" + name + ".index";
-    BPlusTree<KeyType, int, 200> newTree(buffer, index_filename);
-    index[table].push_back({ name,keys });
-    return true;
-}
