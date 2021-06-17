@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BPlusTree.h"
+#include "MiniSQLMeta.h"
 #include "MiniSQLException.h"
 #include <initializer_list>
 #include <vector>
@@ -10,11 +11,11 @@ using namespace std;
 
 struct attr_info {
     string name;
-    int length;
+    Type type;
 };
 struct table_info {
-    string filename;
     vector<attr_info> attrs;
+    int total_length;
     int relation_count;
 };
 using table_file = map<string, table_info>;
@@ -28,7 +29,8 @@ using index_file = map<string, vector<index_info>>;
 
 class CatalogManager {
 public:
-    index_file &getIndexFile() { return index; };
+    index_file &getIndexFile() { return index; }
+    table_file &getTableFile() { return table; }
 
 private:
     table_file table;

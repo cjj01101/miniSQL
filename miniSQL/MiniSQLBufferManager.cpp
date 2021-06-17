@@ -1,5 +1,6 @@
 #include "MiniSQLBufferManager.h"
 #include "MiniSQLException.h"
+#include <iostream>
 
 BufferManager::Page::Page() {
     filename = "";
@@ -23,17 +24,15 @@ BufferManager::~BufferManager() {
     for (int i = 0; i < page_num; i++) {//每一页，写回每一块
         if(frame[i].dirty) writeBackToDisk(i, frame[i].filename, frame[i].block_id);
     }
+    delete[] frame;
 }
 
 //获取文件中块对应在内存里的页号(没找到就调用其他函数分配一页)
 int BufferManager::getPageID(const string &filename, int block_id) {
-    /*for (int i = 0; i < page_num; i++) {
-        if (frame[i].filename == filename && frame[i].block_id == block_id)
-            return i;
-    }*/
     auto id = nameID.find(make_pair(filename,block_id));
     if (nameID.end() != id) return (*id).second;
-    //出了循环，说明buffer里没有匹配的页
+    
+    //buffer中无相应块
     int page_id = getEmptyPage();
     loadBlockToPage(page_id, filename, block_id);
     return page_id;
@@ -59,7 +58,7 @@ void BufferManager::setBlockContent(const string &filename, int block_id, int of
     int page_id = getPageID(filename, block_id);
     if (frame[page_id].empty == true) throw MiniSQLException("Empty Page!");
     if (offset >= PAGESIZE) throw MiniSQLException("Write Page Out of range!");
-    strncpy_s(frame[page_id].buffer, data, length);
+    memcpy_s(frame[page_id].buffer + offset, PAGESIZE - offset, data, length);
     frame[page_id].dirty = true;
     frame[page_id].ref = true;
 }
@@ -68,12 +67,43 @@ void BufferManager::setBlockContent(const string &filename, int block_id, int of
 void BufferManager::setBlockContent(int page_id, int offset, char* data, size_t length) {
     if (frame[page_id].empty == true) throw MiniSQLException("Empty Page!");
     if (offset >= PAGESIZE) throw MiniSQLException("Write Page Out of range!");
-    strncpy_s(frame[page_id].buffer, data, length);
+    memcpy_s(frame[page_id].buffer + offset, PAGESIZE - offset, data, length);
     frame[page_id].dirty = true;
     frame[page_id].ref = true;
 }
 
-//钉住/解钉
+//在文件中新开一块，返回对应的块号
+int BufferManager::allocNewBlock(const string &filename) {
+    int page_id = getEmptyPage();
+
+    FILE* fp;
+    fopen_s(&fp, filename.c_str(), "rb+");
+    if (fp == nullptr) throw MiniSQLException("Fail to open file!"); //打开文件失败
+    fseek(fp, 0, SEEK_END);
+    int block_id = ftell(fp) / PAGESIZE;
+    char blank[PAGESIZE] = { 0 };
+    fwrite(blank, sizeof(blank[0]), sizeof(blank), fp);
+    fclose(fp);
+
+    frame[page_id].filename = filename;
+    frame[page_id].block_id = block_id;
+    frame[page_id].dirty = false;
+    frame[page_id].pin = false;
+    frame[page_id].ref = true;
+    frame[page_id].empty = false;
+    nameID[make_pair(filename, block_id)] = page_id;
+
+    return block_id;
+}
+
+//清空某文件相关的所有页
+void BufferManager::setEmpty(const string &filename) {
+    for (int i = 0; i < page_num; i++) {
+        if (frame[i].filename == filename) frame[i] = Page();
+    }
+}
+
+//固定/解除固定
 void BufferManager::setPagePin(int page_id, bool pin) {
     frame[page_id].pin = pin;
 }
@@ -88,20 +118,16 @@ int BufferManager::getEmptyPage() {
         if (frame[replace_position].ref == true)
             frame[replace_position].ref = false;
         else if (frame[replace_position].pin == false) {//没被钉住
+            string filename = frame[replace_position].filename;
+            int block_id = frame[replace_position].block_id;
             if (frame[replace_position].dirty == true) {
                 //写回
-                string filename = frame[replace_position].filename;
-                int block_id = frame[replace_position].block_id;
                 writeBackToDisk(replace_position, filename, block_id);
                 //清空该页数据（重新初始化）
-                frame[replace_position].filename = "";
-                frame[replace_position].block_id = -1;
-                frame[replace_position].dirty = false;
-                frame[replace_position].pin = false;
-                frame[replace_position].ref = false;
-                frame[replace_position].empty = true;
-                memset(frame[replace_position].buffer, 0, sizeof(char) * PAGESIZE);
+                frame[replace_position] = Page();
             }
+            auto it = nameID.find(make_pair(filename, block_id));
+            nameID.erase(it);
             break;
         }
         replace_position = (replace_position + 1) % page_num;
@@ -111,7 +137,7 @@ int BufferManager::getEmptyPage() {
 //将文件中的块加载到内存的一页里
 void BufferManager::loadBlockToPage(int page_id, const string &filename, int block_id) {
     FILE* fp;
-    fopen_s(&fp, filename.c_str(), "r");
+    fopen_s(&fp, filename.c_str(), "rb");
     if (fp == nullptr) throw MiniSQLException("Fail to open file!"); //打开文件失败
 
     //定位和读取
@@ -127,10 +153,11 @@ void BufferManager::loadBlockToPage(int page_id, const string &filename, int blo
     frame[page_id].empty = false;
     nameID[make_pair(filename,block_id)] = page_id;
 }
+
 //将页写回磁盘
 void BufferManager::writeBackToDisk(int page_id, const string &filename, int block_id) {
     FILE* fp;
-    fopen_s(&fp, filename.c_str(), "r+");
+    fopen_s(&fp, filename.c_str(), "rb+");
     if (fp == nullptr) throw MiniSQLException("Fail to open file!"); //打开文件失败
 
     //定位和写入
@@ -143,12 +170,12 @@ void BufferManager::writeBackToDisk(int page_id, const string &filename, int blo
 void BufferManager_test() {
     BufferManager BM = BufferManager();
     try {
-        char *head = BM.getBlockContent("../test.txt", 0);
-        head = BM.getBlockContent("../test.txt", 1);
+        char *head = BM.getBlockContent("../test.txt", 2);
+        //int newBlock = BM.allocNewBlock("../test.txt");
+        //head = BM.getBlockContent("../test.txt", newBlock);
         std::cout << head;
-        char mod[] = "abcd";
-        BM.setBlockContent("../test.txt", 1, 0, mod, sizeof(mod));
-        head = BM.getBlockContent("../test.txt", 2);
+        char mod[] = "abc";
+        BM.setBlockContent("../test.txt", 2, 0, mod, sizeof(mod));
     } catch (MiniSQLException &e){
         std::cout << e.getMessage();
     }

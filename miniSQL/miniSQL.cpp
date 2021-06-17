@@ -12,5 +12,6 @@ int main()
 {
     //BPlusTree_test();
     //IndexManager_test();
-    BufferManager_test();
+    //BufferManager_test();
+    Meta_test();
 }

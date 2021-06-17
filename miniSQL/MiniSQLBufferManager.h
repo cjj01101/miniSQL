@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <map>
 using std::string;
@@ -43,7 +42,13 @@ public:
     void setBlockContent(const string &filename, int block_id, int offset, char* data, size_t length);
     void setBlockContent(int page_id, int offset, char* data, size_t length);
 
-    //钉住/解钉
+    //在文件中新开一块，返回对应的页号
+    int allocNewBlock(const string &filename);
+
+    //清空某文件相关的所有页
+    void setEmpty(const string &filename);
+    
+    //固定/解除固定
     void setPagePin(int page_id, bool pin);
 
     //时钟替换策略找一个空闲/可替换的页,返回page_id
