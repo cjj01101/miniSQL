@@ -158,6 +158,7 @@
     <ClCompile Include="MiniSQLException.cpp" />
     <ClCompile Include="MiniSQLIndexManager.cpp" />
     <ClCompile Include="MiniSQLMeta.cpp" />
+    <ClCompile Include="MiniSQLRecordManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BPlusTree.h" />
@@ -166,6 +167,7 @@
     <ClInclude Include="MiniSQLException.h" />
     <ClInclude Include="MiniSQLIndexManager.h" />
     <ClInclude Include="MiniSQLMeta.h" />
+    <ClInclude Include="MiniSQLRecordManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

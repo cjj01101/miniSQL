@@ -36,6 +36,9 @@
     <ClCompile Include="MiniSQLBufferManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MiniSQLRecordManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MiniSQLException.h">
@@ -54,6 +57,9 @@
       <Filter>源文件</Filter>
     </ClInclude>
     <ClInclude Include="BPlusTree.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLRecordManager.h">
       <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
