@@ -19,9 +19,17 @@ void BPlusTree_test() {
 
     const int remove_list[] = { 3,2,1,7,8,9,5,6,4,10,27,12,11,37,13,60,25,30,31,24,16,35,-1,40,14,15,0 };
 
-    for (auto i : remove_list) {
-        if (BPT.findData(i)) cout << i << " exists." << endl;
+    /*for (auto i : remove_list) {
+        if (BPT.checkData(i)) cout << i << " exists." << endl;
         else cout << i << " doesn't exist." << endl;
+    }*/
+
+    BPT.print();
+    auto it_2 = BPT.findData(8);
+    cout << *it_2 << endl;
+
+    for (auto it = BPT.begin(); it != BPT.end(); it.next()) {
+        cout << *it << "->";
     }
 
     for (auto i : remove_list) {

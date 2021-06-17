@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BPlusTree.h"
+#include "MiniSQLMeta.h"
 #include "MiniSQLException.h"
 #include <initializer_list>
 #include <vector>
@@ -8,27 +8,33 @@
 #include <map>
 using namespace std;
 
-struct attr_info {
+struct Attr {
     string name;
-    int length;
+    Type type;
 };
-struct table_info {
-    string filename;
-    vector<attr_info> attrs;
-    int relation_count;
+struct Table {
+    vector<Attr> attrs;
+    int record_per_block;
+    int record_count;
 };
-using table_file = map<string, table_info>;
+using table_file = map<string, Table>;
 
-struct index_info {
-    index_info(initializer_list<string> keys, BPlusTreeInterface *tree) : keys(keys), tree(tree) {}
+struct Index {
+    Index(string name, initializer_list<string> keys) : name(name), keys(keys) {}
+    string name;
     set<string> keys;
-    BPlusTreeInterface *tree;
 };
-using index_file = map<string, vector<index_info>>;
+using index_file = map<string, vector<Index>>;
 
 class CatalogManager {
 public:
-    index_file &getIndexFile() { return index; };
+    index_file &getIndexFile() { return index; }
+    table_file &getTableFile() { return table; }
+    bool findIndex(const string &tablename, const string &indexname) const;
+    void addIndexInfo(const string &tablename ,const string &indexname, initializer_list<string> keys);
+    void deleteIndexInfo(const string &tablename, const string &indexname);
+    void addTableInfo();
+    void getTableInfo();
 
 private:
     table_file table;

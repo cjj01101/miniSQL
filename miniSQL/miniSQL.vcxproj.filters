@@ -36,25 +36,37 @@
     <ClCompile Include="MiniSQLBufferManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MiniSQLAPI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MiniSQLRecordManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MiniSQLException.h">
-      <Filter>源文件</Filter>
+    <ClInclude Include="BPlusTree.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="MiniSQLIndexManager.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MiniSQLCatalogManager.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MiniSQLMeta.h">
-      <Filter>源文件</Filter>
+    <ClInclude Include="MiniSQLAPI.h">
+      <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="MiniSQLBufferManager.h">
-      <Filter>源文件</Filter>
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="BPlusTree.h">
-      <Filter>源文件</Filter>
+    <ClInclude Include="MiniSQLCatalogManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLException.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLIndexManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLMeta.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MiniSQLRecordManager.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
