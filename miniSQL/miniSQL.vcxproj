@@ -158,6 +158,7 @@
     <ClCompile Include="MiniSQLCatalogManager.cpp" />
     <ClCompile Include="MiniSQLException.cpp" />
     <ClCompile Include="MiniSQLIndexManager.cpp" />
+    <ClCompile Include="MiniSQLInterpreter.cpp" />
     <ClCompile Include="MiniSQLMeta.cpp" />
     <ClCompile Include="MiniSQLRecordManager.cpp" />
   </ItemGroup>
@@ -168,6 +169,7 @@
     <ClInclude Include="MiniSQLCatalogManager.h" />
     <ClInclude Include="MiniSQLException.h" />
     <ClInclude Include="MiniSQLIndexManager.h" />
+    <ClInclude Include="MiniSQLInterpreter.h" />
     <ClInclude Include="MiniSQLMeta.h" />
     <ClInclude Include="MiniSQLRecordManager.h" />
   </ItemGroup>
