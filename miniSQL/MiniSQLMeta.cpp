@@ -39,6 +39,19 @@ bool Value::operator<(const Value &rhs) const {
     return lvalue < rvalue;
 }
 
+std::ostream &operator<<(std::ostream &os, Value value) {
+    if (value.type.btype == BaseType::INT) {
+        os << value.translate<int>();
+    }
+    else if (value.type.btype == BaseType::FLOAT) {
+        os << value.translate<float>();
+    }
+    else if (value.type.btype == BaseType::CHAR) {
+        os << value.translate<char*>();
+    }
+    return os;
+}
+
 void Meta_test() {
     int a = 3;
     Value v1(Type(BaseType::INT, sizeof(int)), &a);
@@ -48,13 +61,22 @@ void Meta_test() {
 
     Value v3(v1);
 
-    Value v4(Type(BaseType::CHAR, 4), "abc");
+    Value v4(Type(BaseType::CHAR, 5), "abc");
 
     char* head = v4.translate<char*>();
 
     std::cout << head << std::endl;
-    std::cout << (v1 == v3) << (v1 < v2) << (v1 <= v2) << (v1 >= v2) << (v1 > v2) << (v1 <= v3) << (v1 >= v3);
+    std::cout << (v1 == v3) << (v1 < v2) << (v1 <= v2) << (v1 >= v2) << (v1 > v2) << (v1 <= v3) << (v1 >= v3) << std::endl;
     /*Value<char, 2> value1("ab");
     Value<char, 2> value2("a");
     std::cout << TypeCompatible<decltype(value1), decltype(value2)>::value << std::endl << value1.value << std::endl << value2.value;*/
+
+    Type t1(BaseType::INT, 4);
+    Type t2(BaseType::CHAR, 5);
+    std::cout << (t1 == t2) << (t1 != t2) << std::endl;
+
+    Record rec = { v1, v2, v3, v4 };
+    for (auto i : rec) {
+        std::cout << i << " ";
+    }
 }

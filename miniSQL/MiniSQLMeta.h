@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <iostream>
 
 /*                                          */
 /*                                          */
@@ -16,9 +17,12 @@ enum class BaseType {
 };
 
 struct Type {
-    Type(BaseType btype, size_t size) : btype(btype), size(size) {}
+    Type(BaseType btype, size_t size) : btype(btype), size(btype == BaseType::CHAR ? size : 4) {}
     BaseType btype;
     size_t size;
+
+    bool operator==(const Type &rhs) { return (btype == rhs.btype && size == rhs.size); }
+    bool operator!=(const Type &rhs) { return !(*this == rhs); }
 };
 
 struct Value {
@@ -41,6 +45,8 @@ struct Value {
 
     Type type;
     void *data;
+
+    friend std::ostream &operator<<(std::ostream &os, Value value);
 };
 
 using Record = std::vector<Value>;
@@ -62,12 +68,13 @@ struct Condition {
 using Predicate = std::map<string, Condition>;
 
 enum class Op {
-    CREATE_TABLE, DROP_TABLE, CREATE_INDEX, DROP_INDEX, SELECT, REMOVE, INSERT
+    CREATE_TABLE, DROP_TABLE, CREATE_INDEX, DROP_INDEX, SELECT, DELETE, INSERT, EXECFILE, QUIT
 };
 
 struct operation {
     Op op;
     string table;
+    string index;
     Predicate pred;
 };
 

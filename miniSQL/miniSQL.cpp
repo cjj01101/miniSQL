@@ -11,9 +11,9 @@ extern void API_test();
 
 int main()
 {
-    //Meta_test();
+    Meta_test();
     //BPlusTree_test();
     //IndexManager_test();
     //BufferManager_test();
-    API_test();
+    //API_test();
 }
