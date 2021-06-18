@@ -1,7 +1,6 @@
 #pragma once
 
 #include "MiniSQLMeta.h"
-#include "MiniSQLException.h"
 #include <initializer_list>
 #include <vector>
 #include <set>
@@ -11,6 +10,7 @@ using namespace std;
 struct Attr {
     string name;
     Type type;
+    bool unique;
 };
 struct Table {
     vector<Attr> attrs;

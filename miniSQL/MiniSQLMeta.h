@@ -51,6 +51,19 @@ struct Value {
 
 using Record = std::vector<Value>;
 
+typedef struct {
+    string filename;
+    int block_id;
+    int offset;
+} Position;
+
+typedef struct {
+    Position pos;
+    Record content;
+} RecordInfo;
+
+using ReturnTable = set<RecordInfo>;
+
 /*                                          */
 /*                                          */
 /*                ²Ù×÷ÀàÐÍ                  */
@@ -65,7 +78,7 @@ struct Condition {
     Compare comp;
     Value data;
 };
-using Predicate = std::map<string, Condition>;
+using Predicate = std::map<string, vector<Condition>>;
 
 enum class Op {
     CREATE_TABLE, DROP_TABLE, CREATE_INDEX, DROP_INDEX, SELECT, DELETE, INSERT, EXECFILE, QUIT
