@@ -8,12 +8,14 @@ extern void BufferManager_test();
 extern void BPlusTree_test();
 extern void IndexManager_test();
 extern void API_test();
+extern void Interpreter_test();
 
 int main()
 {
-    Meta_test();
+    //Meta_test();
     //BPlusTree_test();
     //IndexManager_test();
     //BufferManager_test();
     //API_test();
+    Interpreter_test();
 }
