@@ -17,18 +17,20 @@ class InterpreterQuit {};
 
 class Interpreter {
 public:
-    Interpreter(istream &in, ostream &out, API *core = nullptr) : in(in), out(out), core(core) {};
+    Interpreter(API *core, istream &in, ostream &out) : core(core), in(in), out(out) {};
+
+    Type getType(const string &type_string);
+
     void parse_input(const string &input);
-    void parse_table_definition(string &content, smatch &result);
+    void parse_table_definition(const string &tablename, string &content, smatch &result);
     void parse_insert_value(string &content, smatch &result);
     void parse_condition(string &content, smatch &result);
-    void parse_attribute_sequence(string &content, smatch &result);
 
     void start();
 private:
+    API *core;
     istream &in;
     ostream &out;
-    API *core;
 
     const regex create_table_pattern = regex("create table (\\w+)\\s?\\(([\\s\\S]+)\\)");
     const regex drop_table_pattern = regex("drop table (\\w+)\\s?");
@@ -46,7 +48,6 @@ private:
     const regex integer_pattern = regex("([[:digit:]])");
     const regex float_pattern = regex("(\\d+(\\.\\d+)?)");
     const regex string_pattern = regex("(?:\"|')([\\s\\S]+)(?:\"|')");
-    //const regex condition_pattern = regex("(\\w+)\\s?(=|<|>|<=|>=|<>)\\s?([[:digit:]]|\\d+(?:\\.\\d+)?|(?:\"|')[\\s\\S]+?(?:\"|'))(?: and ([\\s\\S]+))?");
     const regex condition_pattern = regex("(\\w+)\\s?(<=|>=|<>|=|<|>)\\s?([\\s\\S]+?)(?: and ([\\s\\S]+))?");
     //select * from t where a = 3 and b > 2.4 and d<>'adh' and f = "abd";
 };

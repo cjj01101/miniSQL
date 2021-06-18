@@ -1,7 +1,33 @@
 #include "MiniSQLInterpreter.h"
 #include <sstream>
 
-void Interpreter::parse_table_definition(string &content, smatch &result) {
+/*
+create table table1 (
+ id int,
+ name char(20),
+ money float unique,
+ primary key (id)
+);
+*/
+
+Type Interpreter::getType(const string &type_string) {
+    Type type(BaseType::INT, 4);
+    if (type_string == "float")  type.btype = BaseType::FLOAT;
+    else if (type_string != "int") {
+        type.btype = BaseType::CHAR;
+        size_t left = type_string.find_first_of('(') + 1;
+        size_t right = type_string.find_first_of(')');
+        type.size = stoi(type_string.substr(left, right - left));
+    }
+
+    return type;
+}
+
+void Interpreter::parse_table_definition(const string &tablename, string &content, smatch &result) {
+    string primary_key;
+    std::set<string> attr_names;
+    std::vector<Attr> attr_def;
+
     bool has_primary_key = false;
     bool has_attr = false;
 
@@ -9,21 +35,34 @@ void Interpreter::parse_table_definition(string &content, smatch &result) {
     while (regex_search(content, result, primary_key_definition_pattern)) {
         if (has_primary_key) throw MiniSQLException("Duplicate Primary Key!");
         has_primary_key = true;
-        cout << "[Primary Key Definition] " << result[1] << endl;
+        primary_key = result[1];
+        cout << "[Primary Key Definition] " << primary_key << endl;
         content.erase(result.position(0), result.length(0));
     }
 
     //解析属性定义
     istringstream split_by_comma(content);
-    string attr_def;
-    while (getline(split_by_comma, attr_def, ',')) {
-        if (regex_match(attr_def, result, attr_definition_pattern)) {
-            cout << "[Attribute Definition] " << result[1] << ": " << result[2] << result[3] << endl;
+    string attr;
+    while (getline(split_by_comma, attr, ',')) {
+        if (regex_match(attr, result, attr_definition_pattern)) {
+            string name = result[1];
+            Type type = getType(result[2]);
+            bool unique = (result.length(3) != 0);
+
+            if (attr_names.end() != attr_names.find(name)) throw MiniSQLException("Duplicate Attribute Name!");
+            attr_names.insert(name);
+            attr_def.push_back({ name, type, unique });
+            
+            cout << "[Attribute Definition] " << name << ": " << result[2] << result[3] << endl;
             has_attr = true;
         }
         else throw MiniSQLException("Illegal Attribute Definition!");
     }
+
     if (!has_attr) throw MiniSQLException("Illegal Table Definition!");
+    if (attr_names.end() == attr_names.find(primary_key)) throw MiniSQLException("Illegal Primary Key Definition!");
+
+    core->createTable(tablename, attr_def, { primary_key });
 }
 
 void Interpreter::parse_insert_value(string &content, smatch &result) {
@@ -75,11 +114,12 @@ void Interpreter::parse_input(const string &input) {
         tablename = result[1];
         content = result[2];
         cout << "Match CREATE TABLE!" << endl << "[table name] " << tablename << endl << "[content] " << content << endl;
-        parse_table_definition(content, result);
+        parse_table_definition(tablename, content, result);
     }
     else if (regex_match(input, result, drop_table_pattern)) {
         tablename = result[1];
         cout << "Match DROP TABLE!" << endl << "[table name] " << tablename << endl;
+        core->dropTable(tablename);
     }
     else if (regex_match(input, result, create_index_pattern)) {
         tablename = result[1];
@@ -144,6 +184,10 @@ void Interpreter::start() {
 }
 
 void Interpreter_test() {
-    Interpreter IO(cin, cout);
+    BufferManager BM;
+    CatalogManager CM;
+    IndexManager IM(&BM);
+    API core(&CM, &IM);
+    Interpreter IO(&core, cin, cout);
     IO.start();
 }

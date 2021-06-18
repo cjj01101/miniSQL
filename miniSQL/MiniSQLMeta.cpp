@@ -2,11 +2,13 @@
 #include <iostream>
 
 Value::Value(Type type, const void *data) : type(type) {
+    if (data == nullptr) throw MiniSQLException("NULL Value!");
     this->data = new char[type.size];
     memcpy_s(this->data, type.size, data, type.size);
 }
 
 Value::Value(const Value &rhs) : type(rhs.type) {
+    if (data == nullptr) throw MiniSQLException("NULL Value!");
     data = new char[type.size];
     memcpy_s(data, type.size, rhs.data, type.size);
 }
