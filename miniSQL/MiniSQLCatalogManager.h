@@ -19,7 +19,7 @@ struct Attr {
 };
 struct Table {
     vector<Attr> attrs;
-    int record_per_block;
+    size_t record_per_block;
     int record_count;
 };
 using table_file = map<string, Table>;

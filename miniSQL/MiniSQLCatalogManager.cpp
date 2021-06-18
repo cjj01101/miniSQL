@@ -9,7 +9,7 @@ const Table &CatalogManager::getTableInfo(const string &tablename) {
 void CatalogManager::addTableInfo(const string &tablename, const vector<Attr> &attrs) {
     if (table.end() != table.find(tablename)) throw MiniSQLException("Duplicate Table Name!");
 
-    int length = 1;
+    size_t length = 1;
     for (auto attr : attrs) length += attr.type.size;
     table[tablename] = {attrs, PAGESIZE / length, 0};
 }

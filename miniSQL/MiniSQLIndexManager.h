@@ -11,7 +11,7 @@ public:
     template<typename KeyType>
     void createIndex(const string &tablename, const string &indexname, int size) {
         string filename = "../" + tablename + "_" + indexname + ".index";
-        BPlusTree<KeyType, int, 200> newTree(buffer, filename);
+        BPlusTree<KeyType, int> newTree(buffer, filename, size);
     }
 
     void dropIndex(const string &tablename, const string &indexname) {
