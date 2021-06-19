@@ -4,7 +4,7 @@
 #include <cstring>
 //计算表所在文件有多少块
 int RecordManager::getBlockNum(Table table) {
-	float n = 1.0* table.record_count / table.record_count;
+	float n = 1.0* table.record_count / table.record_per_block;
 	return ceil(n);
 }
 
@@ -66,7 +66,7 @@ Record RecordManager::AddRecord(char *q, Table table) {
 		int attr_length = iter->type.size;
 		char *data = nullptr;
 		data = new char[30];
-		strncpy(data, q, attr_length);
+		memcpy_s(data,30, q, attr_length);
 		Value v = Value::Value(iter->type, data);
 		rec.push_back(v);
 		q += attr_length;
@@ -94,7 +94,7 @@ bool RecordManager::isConflict(Table table, Record record, const string &tablena
 					//p指向第i个属性的值,iter指向第i个Attr结构
 					char *data = nullptr;
 					data = new char[30];
-					strncpy(data, p, iter->type.size);
+					memcpy_s(data,30, p, iter->type.size);
 					Value v = Value::Value(iter->type, data);
 					if (v==record[i])return true;
 					for (; iter != table.attrs.end(); iter++) {
@@ -120,7 +120,7 @@ bool RecordManager::isConflict(Table table, Record record, const string &tablena
 					//p指向第i个属性的值,iter指向第i个Attr结构
 					char *data = nullptr;
 					data = new char[30];
-					strncpy(data, p, iter->type.size);
+					memcpy_s(data,30, p, iter->type.size);
 					Value v = Value::Value(iter->type, data);
 					if (v == record[i])return true;
 					for (; iter != table.attrs.end(); iter++) {
@@ -178,7 +178,7 @@ ReturnTable RecordManager::selectRecord(const string &tablename, Table table, Pr
 							//提取data进行比较
 							char *data = nullptr;
 							data = new char[30];
-							strncpy(data, p, attr_length);
+							memcpy_s(data,30, p, attr_length);
 							Value v = Value::Value(iter->type, data);
 							if (!isFit(v, pred, attr)) {//不合条件
 								flag = 0;
@@ -220,7 +220,7 @@ ReturnTable RecordManager::selectRecord(const string &tablename, Table table, Pr
 							//提取data进行比较
 							char *data = nullptr;
 							data = new char[30];
-							strncpy(data, p, attr_length);
+							memcpy_s(data,30, p, attr_length);
 							Value v = Value::Value(iter->type,data);
 							if (!isFit(v, pred, attr)) {//不合条件
 								flag = 0;
