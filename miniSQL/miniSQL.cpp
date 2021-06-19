@@ -13,9 +13,9 @@ extern void Interpreter_test();
 int main()
 {
     //Meta_test();
-    BPlusTree_test();
+    //BPlusTree_test();
     //IndexManager_test();
     //BufferManager_test();
     //API_test();
-    //Interpreter_test();
+    Interpreter_test();
 }

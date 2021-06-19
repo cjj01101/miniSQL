@@ -47,7 +47,7 @@ void Interpreter::parse_table_definition(const string &tablename, string &conten
         if (regex_match(attr, result, attr_definition_pattern)) {
             string name = result[1];
             Type type = getType(result[2]);
-            bool unique = (result.length(3) != 0);
+            bool unique = (result.length(3) != 0 || name == primary_key);
 
             if (attr_names.end() != attr_names.find(name)) throw MiniSQLException("Duplicate Attribute Name!");
             attr_names.insert(name);
@@ -62,7 +62,8 @@ void Interpreter::parse_table_definition(const string &tablename, string &conten
     if (!has_attr) throw MiniSQLException("Illegal Table Definition!");
     if (attr_names.end() == attr_names.find(primary_key)) throw MiniSQLException("Illegal Primary Key Definition!");
 
-    core->createTable(tablename, attr_def, { primary_key });
+    if(!has_primary_key) core->createTable(tablename, attr_def, {});
+    else core->createTable(tablename, attr_def, { primary_key });
 }
 
 void Interpreter::parse_insert_value(string &content, smatch &result) {
@@ -122,15 +123,17 @@ void Interpreter::parse_input(const string &input) {
         core->dropTable(tablename);
     }
     else if (regex_match(input, result, create_index_pattern)) {
-        tablename = result[1];
-        indexname = result[2];
+        indexname = result[1];
+        tablename = result[2];
         content = result[3];
         cout << "Match CREATE INDEX!" << endl << "[table name] " << tablename << endl << "[index name] " << indexname << endl << "[content] " << content << endl;
+        core->createIndex(tablename, indexname, { content });
     }
     else if (regex_match(input, result, drop_index_pattern)) {
-        tablename = result[1];
-        indexname = result[2];
+        indexname = result[1];
+        tablename = result[2];
         cout << "Match DROP INDEX!" << endl << "[table name] " << tablename << endl << "[index name] " << indexname << endl;
+        core->dropIndex(tablename, indexname);
     }
     else if (regex_match(input, result, insert_pattern)) {
         tablename = result[1];
@@ -178,7 +181,9 @@ void Interpreter::start() {
         } catch (InterpreterQuit) {
             break;
         } catch (MiniSQLException &e) {
-            cout << e.getMessage() << endl;
+            cout << "--------------------------------" << endl;
+            cout << "Error: " << e.getMessage() << endl;
+            cout << "--------------------------------" << endl;
         }
     }
 }

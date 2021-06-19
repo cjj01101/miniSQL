@@ -11,7 +11,7 @@ void CatalogManager::addTableInfo(const string &tablename, const vector<Attr> &a
 
     size_t length = 1;
     for (auto attr : attrs) length += attr.type.size;
-    table[tablename] = {attrs, PAGESIZE / length, 0};
+    table[tablename] = { attrs, PAGESIZE / length, 0 };
 }
 
 void CatalogManager::deleteTableInfo(const string &tablename) {
@@ -36,10 +36,12 @@ void CatalogManager::addIndexInfo(const string &tablename, const string &indexna
 void CatalogManager::deleteIndexInfo(const string &tablename, const string &indexname) {
     if (index.end() == index.find(tablename)) throw MiniSQLException("Index Doesn't Exist!");
     for (auto index_data = index[tablename].begin(); index_data != index[tablename].end(); index_data++) {
-        if (index_data->name == indexname) index[tablename].erase(index_data);
-        return;
+        if (index_data->name == indexname) {
+            index[tablename].erase(index_data);
+            return;
+        }
     }
-    throw MiniSQLException("Index doesn't exist!");
+    throw MiniSQLException("Index Eoesn't Exist!");
 }
 
 void CatalogManager::deleteIndexInfo(const string &tablename) {

@@ -27,7 +27,7 @@ enum class BPlusTreeException { DuplicateKey, KeyNotExist, IteratorIllegal, Iter
 template<typename KeyType, typename DataType>
 class BPlusNode {
 public:
-    using NodeType = BPlusNode<DataType, KeyType>;
+    using NodeType = BPlusNode<KeyType, DataType>;
 
     /*                                          */
     /*                                          */
