@@ -41,6 +41,7 @@ public:
     void deleteTableInfo(const string &tablename);
 
     bool findIndex(const string &tablename, const string &indexname) const;
+    const vector<Index> &getIndexInfo(const string &tablename);
     void addIndexInfo(const string &tablename ,const string &indexname, initializer_list<string> keys);
     void deleteIndexInfo(const string &tablename, const string &indexname);
     void deleteIndexInfo(const string &tablename);

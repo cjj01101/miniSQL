@@ -28,6 +28,13 @@ bool CatalogManager::findIndex(const string &tablename, const string &indexname)
     return false;
 }
 
+const vector<Index> &CatalogManager::getIndexInfo(const string &tablename) {
+    auto t = table.find(tablename);
+    if (table.end() == t) throw MiniSQLException("Table Doesn't Exist!");
+    return index[tablename];
+
+}
+
 void CatalogManager::addIndexInfo(const string &tablename, const string &indexname, initializer_list<string> keys) {
     if (findIndex(tablename, indexname)) throw MiniSQLException("Duplicate Index Name!");
     index[tablename].push_back({ indexname,keys });

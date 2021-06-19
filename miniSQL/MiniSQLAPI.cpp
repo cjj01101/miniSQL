@@ -7,6 +7,9 @@ void API::createTable(const string &tablename, const std::vector<Attr> &attrs, i
 }
 
 void API::dropTable(const string &tablename) {
+    auto indexes = CM->getIndexInfo(tablename);
+    for (auto index : indexes) IM->dropIndex(tablename, index.name);
+
     CM->deleteTableInfo(tablename);
     CM->deleteIndexInfo(tablename);
 }
@@ -15,12 +18,12 @@ void API::createIndex(const string &tablename, const string &indexname, initiali
     Table table = CM->getTableInfo(tablename);
     Type primary_key_type;
     size_t basic_length = sizeof(bool) + sizeof(int) * 3;
-    for (auto key = keys.begin(); key != keys.end(); key++) {
+    for (const auto &key : keys) {
         bool key_exists = false;
-        for (auto it = table.attrs.begin(); it != table.attrs.end(); it++) {
-            if (*key == it->name) {
-                if (false == it->unique) throw MiniSQLException("Index Key Is Not Unique!");
-                primary_key_type = it->type;
+        for (const auto &it : table.attrs) {
+            if (key == it.name) {
+                if (false == it.unique) throw MiniSQLException("Index Key Is Not Unique!");
+                primary_key_type = it.type;
                 key_exists = true;
                 break;
             }
