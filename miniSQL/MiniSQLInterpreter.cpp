@@ -6,7 +6,7 @@ create table table1 (
  id int,
  name char(20),
  money float unique,
- primary key (id)
+ primary key ( int )
 );
 */
 
@@ -24,7 +24,7 @@ Type Interpreter::getType(const string &type_string) {
 }
 
 void Interpreter::parse_table_definition(const string &tablename, string &content, smatch &result) {
-    string primary_key;
+    std::set<string> primary_keys;
     std::set<string> attr_names;
     std::vector<Attr> attr_def;
 
@@ -35,8 +35,12 @@ void Interpreter::parse_table_definition(const string &tablename, string &conten
     while (regex_search(content, result, primary_key_definition_pattern)) {
         if (has_primary_key) throw MiniSQLException("Duplicate Primary Key!");
         has_primary_key = true;
-        primary_key = result[1];
-        cout << "[Primary Key Definition] " << primary_key << endl;
+
+        string primary_key_name = result[1];
+        trim(primary_key_name);
+        primary_keys.insert(primary_key_name);
+
+        cout << "[Primary Key Definition] " << result[1] << endl;
         content.erase(result.position(0), result.length(0));
     }
 
@@ -47,7 +51,7 @@ void Interpreter::parse_table_definition(const string &tablename, string &conten
         if (regex_match(attr, result, attr_definition_pattern)) {
             string name = result[1];
             Type type = getType(result[2]);
-            bool unique = (result.length(3) != 0 || name == primary_key);
+            bool unique = (result.length(3) != 0 || (primary_keys.find(name) != primary_keys.end()));
 
             if (attr_names.end() != attr_names.find(name)) throw MiniSQLException("Duplicate Attribute Name!");
             attr_names.insert(name);
@@ -60,13 +64,14 @@ void Interpreter::parse_table_definition(const string &tablename, string &conten
     }
 
     if (!has_attr) throw MiniSQLException("Illegal Table Definition!");
-    if (attr_names.end() == attr_names.find(primary_key)) throw MiniSQLException("Illegal Primary Key Definition!");
+    if (!std::includes(attr_names.begin(), attr_names.end(), primary_keys.begin(), primary_keys.end())) throw MiniSQLException("Illegal Primary Key Definition!");
 
-    if(!has_primary_key) core->createTable(tablename, attr_def, {});
-    else core->createTable(tablename, attr_def, { primary_key });
+    core->createTable(tablename, attr_def, primary_keys);
 }
 
 void Interpreter::parse_insert_value(string &content, smatch &result) {
+    std::vector<Value> record;
+
     istringstream split_by_comma(content);
     string attr_value;
     while (getline(split_by_comma, attr_value, ',')) {

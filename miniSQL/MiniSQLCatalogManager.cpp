@@ -35,7 +35,7 @@ const vector<Index> &CatalogManager::getIndexInfo(const string &tablename) {
 
 }
 
-void CatalogManager::addIndexInfo(const string &tablename, const string &indexname, initializer_list<string> keys) {
+void CatalogManager::addIndexInfo(const string &tablename, const string &indexname, const set<string> &keys) {
     if (findIndex(tablename, indexname)) throw MiniSQLException("Duplicate Index Name!");
     index[tablename].push_back({ indexname,keys });
 }

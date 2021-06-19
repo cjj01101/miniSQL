@@ -1,7 +1,7 @@
 #include "MiniSQLAPI.h"
 #include <iostream>
 
-void API::createTable(const string &tablename, const std::vector<Attr> &attrs, initializer_list<string> primary_key) {
+void API::createTable(const string &tablename, const std::vector<Attr> &attrs, const set<string> &primary_key) {
     CM->addTableInfo(tablename, attrs);
     if(primary_key.size() > 0) createIndex(tablename, "PRIMARY_KEY", primary_key);
 }
@@ -14,7 +14,7 @@ void API::dropTable(const string &tablename) {
     CM->deleteIndexInfo(tablename);
 }
 
-void API::createIndex(const string &tablename, const string &indexname, initializer_list<string> keys) {
+void API::createIndex(const string &tablename, const string &indexname, const set<string> &keys) {
     Table table = CM->getTableInfo(tablename);
     Type primary_key_type;
     size_t basic_length = sizeof(bool) + sizeof(int) * 3;

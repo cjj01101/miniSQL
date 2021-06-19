@@ -2,7 +2,6 @@
 
 #include "MiniSQLMeta.h"
 #include "MiniSQLBufferManager.h"
-#include <initializer_list>
 #include <vector>
 #include <set>
 #include <map>
@@ -25,7 +24,7 @@ struct Table {
 using table_file = map<string, Table>;
 
 struct Index {
-    Index(string name, initializer_list<string> keys) : name(name), keys(keys) {}
+    Index(string name, set<string> keys) : name(name), keys(keys) {}
     string name;
     set<string> keys;
 };
@@ -42,7 +41,7 @@ public:
 
     bool findIndex(const string &tablename, const string &indexname) const;
     const vector<Index> &getIndexInfo(const string &tablename);
-    void addIndexInfo(const string &tablename ,const string &indexname, initializer_list<string> keys);
+    void addIndexInfo(const string &tablename ,const string &indexname, const set<string> &keys);
     void deleteIndexInfo(const string &tablename, const string &indexname);
     void deleteIndexInfo(const string &tablename);
 

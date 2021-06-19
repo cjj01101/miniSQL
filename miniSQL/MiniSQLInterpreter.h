@@ -34,7 +34,7 @@ private:
 
     const regex create_table_pattern = regex("create table (\\w+)\\s?\\(([\\s\\S]+)\\)");
     const regex drop_table_pattern = regex("drop table (\\w+)\\s?");
-    const regex create_index_pattern = regex("create index (\\w+) on (\\w+)\\s?\\(\\s?([^\\)]*)\\s?\\)");
+    const regex create_index_pattern = regex("create index (\\w+) on (\\w+)\\s?\\(\\s?([^\\)]+?)\\s?\\)");
     const regex drop_index_pattern = regex("drop index (\\w+) on (\\w+)");
     const regex insert_pattern = regex("insert into (\\w+) values\\s?\\(([^\\)]*)\\)");
     const regex select_pattern = regex("select * from (\\w+)(?: where ([\\s\\S]+))?");
