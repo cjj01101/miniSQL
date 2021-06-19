@@ -1,11 +1,16 @@
 #pragma once
 
 #include "MiniSQLMeta.h"
+#include "MiniSQLBufferManager.h"
 #include <initializer_list>
 #include <vector>
 #include <set>
 #include <map>
-using namespace std;
+using std::initializer_list;
+using std::vector;
+using std::string;
+using std::map;
+using std::set;
 
 struct Attr {
     string name;
@@ -14,7 +19,7 @@ struct Attr {
 };
 struct Table {
     vector<Attr> attrs;
-    int record_per_block;
+    size_t record_per_block;
     int record_count;
 };
 using table_file = map<string, Table>;
@@ -30,11 +35,15 @@ class CatalogManager {
 public:
     index_file &getIndexFile() { return index; }
     table_file &getTableFile() { return table; }
+
+    const Table &getTableInfo(const string &tablename);
+    void addTableInfo(const string &tablename, const vector<Attr> &attrs);
+    void deleteTableInfo(const string &tablename);
+
     bool findIndex(const string &tablename, const string &indexname) const;
     void addIndexInfo(const string &tablename ,const string &indexname, initializer_list<string> keys);
     void deleteIndexInfo(const string &tablename, const string &indexname);
-    void addTableInfo();
-    void getTableInfo();
+    void deleteIndexInfo(const string &tablename);
 
 private:
     table_file table;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MiniSQLException.h"
+#include <set>
 #include <map>
 #include <vector>
 #include <string>
@@ -17,6 +18,7 @@ enum class BaseType {
 };
 
 struct Type {
+    Type() : btype(BaseType::CHAR), size(0) {}
     Type(BaseType btype, size_t size) : btype(btype), size(btype == BaseType::CHAR ? size : 4) {}
     BaseType btype;
     size_t size;
@@ -62,7 +64,7 @@ typedef struct {
     Record content;
 } RecordInfo;
 
-using ReturnTable = set<RecordInfo>;
+using ReturnTable = std::set<RecordInfo>;
 
 /*                                          */
 /*                                          */
@@ -78,20 +80,21 @@ struct Condition {
     Compare comp;
     Value data;
 };
-using Predicate = std::map<string, vector<Condition>>;
+using Predicate = std::map<std::string, std::vector<Condition>>;
 
+/*
 enum class Op {
     CREATE_TABLE, DROP_TABLE, CREATE_INDEX, DROP_INDEX, SELECT, DELETE, INSERT, EXECFILE, QUIT
 };
 
-struct operation {
+struct Operation {
     Op op;
     string table;
     string index;
     Predicate pred;
 };
 
-/*class data_wrapper {
+class data_wrapper {
 public:
     template<typename T>
     data_wrapper(T data, size_t countOfElements = 1);

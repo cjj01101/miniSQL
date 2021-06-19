@@ -2,7 +2,36 @@
 
 #include "BPlusTree.h"
 #include "MiniSQLCatalogManager.h"
-using namespace std;
+using std::string;
+
+#define MAXCHARSIZE 255
+
+struct FLString
+{
+    char content[MAXCHARSIZE];
+    FLString() = default;
+    FLString(const FLString &rhs) { memcpy_s(content, MAXCHARSIZE, rhs.content, sizeof(rhs.content)); }
+    FLString(const Value& value) { memcpy_s(content, MAXCHARSIZE, value.translate<char*>(), value.type.size); }
+    FLString(const string &content) { memcpy_s(this->content, MAXCHARSIZE, content.data(), MAXCHARSIZE); }
+    FLString(const char *str) { strncpy_s(content, str, MAXCHARSIZE); }
+
+    FLString& operator =(const FLString& rhs) {
+        memcpy_s(content, MAXCHARSIZE, rhs.content, sizeof(rhs.content));
+        return *this;
+    }
+
+    bool operator ==(const FLString& rhs) const { return strcmp(content, rhs.content) == 0; }
+    bool operator !=(const FLString& rhs) const { return !(*this == rhs); }
+    bool operator <(const FLString& rhs) const { return strcmp(content, rhs.content) < 0; }
+    bool operator >(const FLString& rhs) const { return (rhs < *this); }
+    bool operator <=(const FLString& rhs) const { return !(*this > rhs); }
+    bool operator >=(const FLString& rhs) const { return !(*this < rhs); }
+
+    friend std::ostream & operator<<(std::ostream & os, const FLString &str) {
+        os << str.content;
+        return os;
+    }
+};
 
 class IndexManager {
 public:
@@ -11,7 +40,7 @@ public:
     template<typename KeyType>
     void createIndex(const string &tablename, const string &indexname, int size) {
         string filename = "../" + tablename + "_" + indexname + ".index";
-        BPlusTree<KeyType, int, 200> newTree(buffer, filename);
+        BPlusTree<KeyType, int> newTree(buffer, filename, size);
     }
 
     void dropIndex(const string &tablename, const string &indexname) {
