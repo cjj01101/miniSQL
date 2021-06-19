@@ -25,6 +25,25 @@ typename std::enable_if<!std::is_pointer<T>::value, T>::type Value::translate() 
     else throw MiniSQLException("Type Unsupported!");
 }
 
+void Value::convertTo(const Type &rtype) {
+    if (type.btype == rtype.btype) {
+        if (type.btype == BaseType::CHAR) {
+            if (type.size > rtype.size) throw MiniSQLException("Type Incompatible!");
+            char *new_data = new char[rtype.size];
+            memcpy_s(new_data, rtype.size, data, type.size);
+            delete data;
+            data = new_data;
+            type.size = rtype.size;
+        }
+    }
+    else if (type.btype == BaseType::INT && rtype.btype == BaseType::FLOAT) {
+        float new_data = (float)translate<int>();
+        memcpy_s(data, type.size, &new_data, sizeof(float));
+        type.btype = BaseType::FLOAT;
+    }
+    else throw MiniSQLException("Type Incompatible!");
+}
+
 bool Value::operator==(const Value &rhs) const {
     if (type.btype == BaseType::CHAR && rhs.type.btype == BaseType::CHAR) return strcmp(this->translate<char*>(), rhs.translate<char*>()) == 0;
     if (type.btype == BaseType::CHAR || rhs.type.btype == BaseType::CHAR) throw MiniSQLException("Comparation unsupported!");

@@ -7,13 +7,17 @@ using std::string;
 class API {
 public:
     API(CatalogManager *CM, IndexManager *IM) : CM(CM), IM(IM) {}
+
+    void checkPredicate(const string &tablename, const Predicate &pred) const;
+
     void createTable(const string &tablename, const std::vector<Attr> &attrs, const set<string> &primary_key);
     void dropTable(const string &tablename);
     void createIndex(const string &tablename, const string &indexname, const set<string> &keys);
     void dropIndex(const string &tablename, const string &indexname);
-    void insertIntoTable(const string &tablename, std::vector<Value> record);
-    void selectFromTable();
-    void deleteFromTable();
+    void insertIntoTable(const string &tablename, Record &record);
+    void selectFromTable(const string &tablename, const Predicate &pred);
+    void deleteFromTable(const string &tablename, const Predicate &pred);
+
 private:
     CatalogManager *CM;
     IndexManager *IM;

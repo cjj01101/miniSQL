@@ -1,9 +1,9 @@
 #include "MiniSQLCatalogManager.h"
 
-const Table &CatalogManager::getTableInfo(const string &tablename) {
+const Table &CatalogManager::getTableInfo(const string &tablename) const {
     auto t = table.find(tablename);
     if (table.end() == t) throw MiniSQLException("Table Doesn't Exist!");
-    return table[tablename];
+    return table.at(tablename);
 }
 
 void CatalogManager::addTableInfo(const string &tablename, const vector<Attr> &attrs) {
@@ -28,10 +28,10 @@ bool CatalogManager::findIndex(const string &tablename, const string &indexname)
     return false;
 }
 
-const vector<Index> &CatalogManager::getIndexInfo(const string &tablename) {
+const vector<Index> &CatalogManager::getIndexInfo(const string &tablename) const {
     auto t = table.find(tablename);
     if (table.end() == t) throw MiniSQLException("Table Doesn't Exist!");
-    return index[tablename];
+    return index.at(tablename);
 
 }
 

@@ -35,12 +35,12 @@ public:
     index_file &getIndexFile() { return index; }
     table_file &getTableFile() { return table; }
 
-    const Table &getTableInfo(const string &tablename);
+    const Table &getTableInfo(const string &tablename) const;
     void addTableInfo(const string &tablename, const vector<Attr> &attrs);
     void deleteTableInfo(const string &tablename);
 
     bool findIndex(const string &tablename, const string &indexname) const;
-    const vector<Index> &getIndexInfo(const string &tablename);
+    const vector<Index> &getIndexInfo(const string &tablename) const;
     void addIndexInfo(const string &tablename ,const string &indexname, const set<string> &keys);
     void deleteIndexInfo(const string &tablename, const string &indexname);
     void deleteIndexInfo(const string &tablename);

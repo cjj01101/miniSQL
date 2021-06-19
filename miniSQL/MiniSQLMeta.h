@@ -38,6 +38,8 @@ struct Value {
     template<typename T>
     typename std::enable_if<!std::is_pointer<T>::value, T>::type translate() const;
 
+    void convertTo(const Type &rtype);
+
     bool operator==(const Value &rhs) const;
     bool operator!=(const Value &rhs) const { return !(*this == rhs); }
     bool operator<(const Value &rhs) const;
@@ -64,7 +66,7 @@ typedef struct {
     Record content;
 } RecordInfo;
 
-using ReturnTable = std::set<RecordInfo>;
+using ReturnTable = std::vector<RecordInfo>;
 
 /*                                          */
 /*                                          */
