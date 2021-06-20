@@ -10,11 +10,13 @@ using namespace std;
 
 class RecordManager {
 public:
+    RecordManager(BufferManager *buffer) : buffer(buffer) {}
+
 	void createTable(const string &tablename);
-	void dropTable(const string &tablename, Table table);
-	ReturnTable selectRecord(const string &tablename, Table table, Predicate pred);
-	void deleteRecord(Position pos);
-	void insertRecord(const string &tablename, Table table, Record record);
+	void dropTable(const string &tablename);
+	ReturnTable selectRecord(const string &tablename, const Table &table, const Predicate &pred);
+	void deleteRecord(const Position &pos);
+	void insertRecord(const string &tablename, const Table &table, const Record &record);
 private:
 	//计算表所在文件有多少块
 	int getBlockNum(Table table);

@@ -53,14 +53,16 @@ public:
     void insertIntoIndex(const string &tablename, const string &indexname, int size, const KeyType &key, const int pos) {
         string filename = "../" + tablename + "_" + indexname + ".index";
         BPlusTree<KeyType, int> tree(buffer, filename, size);
-        tree.insertData(key, pos);
+        try { tree.insertData(key, pos); }
+        catch (BPlusTreeException &e) { throw MiniSQLException(e); }
     }
 
     template<typename KeyType>
     void removeFromIndex(const string &tablename, const string &indexname, int size, const KeyType &key) {
         string filename = "../" + tablename + "_" + indexname + ".index";
         BPlusTree<KeyType, int> tree(buffer, filename, size);
-        tree.removeData(key);
+        try { tree.removeData(key); }
+        catch (BPlusTreeException &e) { throw MiniSQLException(e); }
     }
 private:
     BufferManager *buffer;

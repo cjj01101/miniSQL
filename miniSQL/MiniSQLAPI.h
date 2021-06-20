@@ -1,12 +1,13 @@
 #pragma once
 #include "MiniSQLCatalogManager.h"
+#include "MiniSQLRecordManager.h"
 #include "MiniSQLIndexManager.h"
 #include "MiniSQLException.h"
 using std::string;
 
 class API {
 public:
-    API(CatalogManager *CM, IndexManager *IM) : CM(CM), IM(IM) {}
+    API(CatalogManager *CM, RecordManager *RM, IndexManager *IM) : CM(CM), RM(RM), IM(IM) {}
 
     void checkPredicate(const string &tablename, const Predicate &pred) const;
 
@@ -20,5 +21,6 @@ public:
 
 private:
     CatalogManager *CM;
+    RecordManager *RM;
     IndexManager *IM;
 };

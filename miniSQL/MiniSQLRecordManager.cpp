@@ -1,7 +1,5 @@
 #include "MiniSQLRecordManager.h"
-#include <cmath>
-#include <cstdio>
-#include <cstring>
+
 //计算表所在文件有多少块
 int RecordManager::getBlockNum(Table table) {
 	double n = 1.0 * table.record_count / table.record_per_block;
@@ -139,16 +137,20 @@ bool RecordManager::isConflict(Table table, Record record, const string &tablena
 
 
 void RecordManager::createTable(const string &tablename) {
+    string filename = "../" + tablename + ".table";
+
 	FILE* fp;
-	fopen_s(&fp, tablename.c_str(), "rb+");
+	fopen_s(&fp, filename.data(), "w");
 	if (fp == nullptr) throw MiniSQLException("Fail to create table file!"); //创建文件失败
 	fclose(fp);
 }
 
-void RecordManager::dropTable(const string &tablename, Table table) {
-	buffer->setEmpty(tablename);
+void RecordManager::dropTable(const string &tablename) {
+    string filename = "../" + tablename + ".table";
+
+	buffer->setEmpty(filename);
 	//清除文件内容,remove成功返回0
-	if(remove(tablename.c_str())!=0)throw MiniSQLException("Fail to drop table file!");
+    if (remove(filename.data()) != 0) throw MiniSQLException("Fail to drop table file!");
 }
 /*
 select
@@ -157,7 +159,7 @@ output:返回记录（集成）
 找文件头，一块一块载入buffer，每载入一块就一条一条查，在valid bit为1的记录中比较Predicate
 然后加入一个set
 */
-ReturnTable RecordManager::selectRecord(const string &tablename, Table table, Predicate pred){
+ReturnTable RecordManager::selectRecord(const string &tablename, const Table &table, const Predicate &pred){
 	int searched_record = 0;
 	int block_num = getBlockNum(table);
 	int record_length = getRecordLength(table);
@@ -259,7 +261,7 @@ input:table_name,Table,Predicate
 output:none
 传入position，把buffer中相应块dirty=true，该记录的valid bit置为false
 */
-void RecordManager::deleteRecord(Position pos) {
+void RecordManager::deleteRecord(const Position &pos) {
     string tablename = pos.filename;
     int block_id = pos.block_id;
     int offset = pos.offset;
@@ -273,7 +275,7 @@ output:none
 插入需要检查unique属性还有主键属性是否重复，throw异常
 然后找到文件最后一块的最末尾，插记录，valid bit置为1
 */
-void RecordManager::insertRecord(const string &tablename, Table table, Record record) {
+void RecordManager::insertRecord(const string &tablename, const Table &table, const Record &record) {
 	//检测冲突
     int i = 0;//第i个属性
     for (auto iter = table.attrs.begin(); iter != table.attrs.end(); iter++, i++) {

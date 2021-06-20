@@ -209,8 +209,9 @@ void Interpreter::start() {
 void Interpreter_test() {
     BufferManager BM;
     CatalogManager CM;
+    RecordManager RM(&BM);
     IndexManager IM(&BM);
-    API core(&CM, &IM);
+    API core(&CM, &RM, &IM);
     Interpreter IO(&core, cin, cout);
     IO.start();
 }
