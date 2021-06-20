@@ -35,6 +35,8 @@ public:
     index_file &getIndexFile() { return index; }
     table_file &getTableFile() { return table; }
 
+    void modifyRecordCount(const string &tablename, int diff);
+
     const Table &getTableInfo(const string &tablename) const;
     void addTableInfo(const string &tablename, const vector<Attr> &attrs);
     void deleteTableInfo(const string &tablename);

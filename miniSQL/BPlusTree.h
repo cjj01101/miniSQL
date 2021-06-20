@@ -12,8 +12,6 @@
 template<typename KeyType, typename DataType>
 class BPlusTree;
 
-enum class BPlusTreeException { DuplicateKey, KeyNotExist, IteratorIllegal, IteratorOverBounds };
-
 /*                                          */
 /*                                          */
 /*              B+Ê÷Ò¶×Ó½áµã                */

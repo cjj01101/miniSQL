@@ -99,7 +99,11 @@ int BufferManager::allocNewBlock(const string &filename) {
 //清空某文件相关的所有页
 void BufferManager::setEmpty(const string &filename) {
     for (int i = 0; i < page_num; i++) {
-        if (frame[i].filename == filename) frame[i] = Page();
+        if (frame[i].filename == filename) {
+            auto it = nameID.find(make_pair(filename, frame[i].block_id));
+            nameID.erase(it);
+            frame[i] = Page();
+        }
     }
 }
 
