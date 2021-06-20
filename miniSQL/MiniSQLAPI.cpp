@@ -84,6 +84,10 @@ void  API::insertIntoTable(const string &tablename, Record &record) {
         value_ptr++;
     }
 
+    string filename = "../" + tablename + ".table";
+    RM->insertRecord(filename, table, record);
+    CM->modifyRecordCount(tablename, 1);
+
     const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &index : indexes) {
         size_t basic_length = sizeof(bool) + sizeof(int) * 3;

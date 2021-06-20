@@ -1,5 +1,11 @@
 #include "MiniSQLCatalogManager.h"
 
+void CatalogManager::modifyRecordCount(const string &tablename, int diff) {
+    auto t = table.find(tablename);
+    if (table.end() == t) throw MiniSQLException("Table Doesn't Exist!");
+    table[tablename].record_count += diff;
+}
+
 const Table &CatalogManager::getTableInfo(const string &tablename) const {
     auto t = table.find(tablename);
     if (table.end() == t) throw MiniSQLException("Table Doesn't Exist!");
