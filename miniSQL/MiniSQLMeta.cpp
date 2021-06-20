@@ -47,7 +47,8 @@ void Value::convertTo(const Type &rtype) {
 bool Value::operator==(const Value &rhs) const {
     if (type.btype == BaseType::CHAR && rhs.type.btype == BaseType::CHAR) return strcmp(this->translate<char*>(), rhs.translate<char*>()) == 0;
     if (type.btype == BaseType::CHAR || rhs.type.btype == BaseType::CHAR) throw MiniSQLException("Comparation unsupported!");
-    float lvalue = (type.btype == BaseType::INT) ? (float)(this->translate<int>()) : this->translate<float>();
+    if (type.btype == BaseType::INT && rhs.type.btype == BaseType::INT) return (translate<int>() == rhs.translate<int>());
+    float lvalue = (type.btype == BaseType::INT) ? (float)(translate<int>()) : translate<float>();
     float rvalue = (rhs.type.btype == BaseType::INT) ? (float)(rhs.translate<int>()) : rhs.translate<float>();
     return lvalue == rvalue;
 }
@@ -55,7 +56,8 @@ bool Value::operator==(const Value &rhs) const {
 bool Value::operator<(const Value &rhs) const {
     if (type.btype == BaseType::CHAR && rhs.type.btype == BaseType::CHAR) return strcmp(this->translate<char*>(), rhs.translate<char*>()) < 0;
     if (type.btype == BaseType::CHAR || rhs.type.btype == BaseType::CHAR) throw MiniSQLException("Comparation unsupported!");
-    float lvalue = (type.btype == BaseType::INT) ? (float)(this->translate<int>()) : this->translate<float>();
+    if (type.btype == BaseType::INT && rhs.type.btype == BaseType::INT) return (translate<int>() < rhs.translate<int>());
+    float lvalue = (type.btype == BaseType::INT) ? (float)(translate<int>()) : translate<float>();
     float rvalue = (rhs.type.btype == BaseType::INT) ? (float)(rhs.translate<int>()) : rhs.translate<float>();
     return lvalue < rvalue;
 }

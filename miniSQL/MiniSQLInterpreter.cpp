@@ -176,7 +176,12 @@ void Interpreter::parse_input(const string &input) {
         core->deleteFromTable(tablename, pred);
     }
     else if (regex_match(input, result, execfile_pattern)) {
+        string filename = result[1];
         cout << "Match EXECFILE!" << endl << "[filename] " << result[1] << endl;
+        std::ifstream inf(filename);
+        if (!inf.is_open()) throw MiniSQLException("File Doesn't Exist!");
+        Interpreter interp(core, inf, out);
+        interp.start();
     }
     else if (regex_match(input, result, quit_pattern)) {
         throw InterpreterQuit();
@@ -189,6 +194,7 @@ void Interpreter::start() {
     string input;
     
     while (true) {
+        if (in.eof()) break;
         in.getline(buffer, IOBUFFER_CAPACITY, ';');
         in.ignore(1);
         input = regex_replace(buffer, regex("\\s+"), " ");
@@ -212,6 +218,7 @@ void Interpreter_test() {
     RecordManager RM(&BM);
     IndexManager IM(&BM);
     API core(&CM, &RM, &IM);
+
     Interpreter IO(&core, cin, cout);
     IO.start();
 }
