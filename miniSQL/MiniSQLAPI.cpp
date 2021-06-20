@@ -70,6 +70,8 @@ create table table1 (
 );
 
 insert into table1 values (3, "abc", 4.5);
+insert into table1 values (4, "abc", 5.5);
+insert into table1 values (7, "abc", 5.5);
 select * from table1 where id = 4 and money > 600 and name <> "amy";
 */
 

@@ -1,74 +1,55 @@
 #include "MiniSQLRecordManager.h"
 
 //计算表所在文件有多少块
-int RecordManager::getBlockNum(const Table &table) {
+int RecordManager::getBlockNum(const Table &table) const {
 	return table.record_count / table.record_per_block + 1;
 }
 
 //计算一条记录有多少位（包括valid bit）
-int RecordManager::getRecordLength(const Table &table) {
+int RecordManager::getRecordLength(const Table &table) const {
 	size_t length = 1;//算上valid bit
-	for (auto iter = table.attrs.begin(); iter != table.attrs.end(); iter++) {
-		if (iter->type.btype==BaseType::CHAR) {
-			length += iter->type.size;
-		}
-		else {//int和float都是4个字节
-			length += 4;
-		}
-	}
+	for (auto attr : table.attrs) length += attr.type.size;
 	return length;
 }
+
 //判断记录是否符合条件
-bool RecordManager::isFit(const Value &v, const Predicate &pred, const string &attr) {
-	int flag = 0;
-	for (auto iter = pred.at(attr).begin(); iter != pred.at(attr).end(); iter++) {
+bool RecordManager::isFit(const Value &v, const std::vector<Condition> &cond) const {
+	for (auto iter = cond.begin(); iter != cond.end(); iter++) {
         switch (iter->comp)
         {
         case Compare::EQ:
-            if (v == iter->data)flag = 1;
-            else flag = 0;
+            if (v != iter->data) return false;
             break;
         case Compare::LE:
-            if (v <= iter->data)flag = 1;
-            else flag = 0;
+            if (v > iter->data) return false;
             break;
         case Compare::GE:
-            if (v >= iter->data)flag = 1;
-            else flag = 0;
+            if (v < iter->data) return false;
             break;
         case Compare::NE:
-            if (v != iter->data)flag = 1;
-            else flag = 0;
+            if (v == iter->data) return false;
             break;
         case Compare::LT:
-            if (v < iter->data)flag = 1;
-            else flag = 0;
+            if (v >= iter->data) return false;
             break;
         case Compare::GT:
-            if (v > iter->data)flag = 1;
-            else flag = 0;
+            if (v <= iter->data) return false;
             break;
-        default:
-            break;
+        default: throw MiniSQLException("Unsupported Comparation!");
         }
-		if (flag == 0) return false;//只要有一个条件不符合就不选
 	}
 	return true;
 }
 
 //集成符合条件的记录
-Record RecordManager::AddRecord(char *q, Table table) {
-	Record rec;
-	for (auto iter = table.attrs.begin(); iter != table.attrs.end(); iter++) {
-		size_t attr_length = iter->type.size;
-		char *data = nullptr;
-		data = new char[30];
-        memcpy_s(data, 30, q, attr_length);
-		Value v = Value::Value(iter->type, data);
-		rec.push_back(v);
-		q += attr_length;
+Record RecordManager::addRecord(const char *const data, const Table &table) {
+	Record record;
+    const char *p = data;
+	for (auto attr : table.attrs) {
+		record.push_back(Value(attr.type, p));
+		p += attr.type.size;
 	}
-	return rec;
+	return record;
 }
 
 void RecordManager::createTable(const string &tablename) {
@@ -100,45 +81,38 @@ ReturnTable RecordManager::selectRecord(const string &filename, const Table &tab
 	int record_length = getRecordLength(table);
 	ReturnTable T;
     for (int k = 0; k < block_num; k++) {
-        char* head = buffer->getBlockContent(filename, k);//返回该页的头指针
-        char* p = head;
+        char* curRecord = buffer->getBlockContent(filename, k);//返回该页的头指针
         while (true) {
             if (k == block_num - 1 && searched_record == table.record_count) break;
+            char *p = curRecord;
             if (*reinterpret_cast<bool*>(p) == true) { //valid bit为1
                 p++;//移到第一个属性
                 //一个个属性和pred比对
-                int flag = 1;
-                for (auto iter = table.attrs.begin(); iter != table.attrs.end(); iter++) {
-                    string attr = iter->name;
-                    size_t attr_length = iter->type.size;
-                    if (pred.end() != pred.find(attr)) {//找到了这个属性上的条件
+                bool satisfied = true;
+                for (auto attr : table.attrs) {
+                    string attr_name = attr.name;
+                    size_t attr_length = attr.type.size;
+                    if (pred.end() != pred.find(attr_name)) {//找到了这个属性上的条件
                         //提取data进行比较
-                        char *data = new char[30];
-                        memcpy_s(data, 30, p, attr_length);
-                        Value v = Value::Value(iter->type, data);
-                        if (!isFit(v, pred, attr)) {//不合条件
-                            flag = 0;
+                        Value v(attr.type, p);
+                        if (!isFit(v, pred.at(attr_name))) {//不合条件
+                            satisfied = false;
                             break;
                         }
                     }
                     p += attr_length;
                 }
-                if (flag == 1) {//循环之后flag仍为1 or 没有where条件
-                    //pos
-                    Position pos;
-                    pos.filename = filename;
-                    pos.block_id = k;
-                    pos.offset = searched_record * record_length;
+                if (satisfied) {//循环之后satisfied仍为1 or 没有where条件
                     //加入set
                     RecordInfo rec;
-                    rec.pos = pos;
-                    char *q = p - record_length + 1;//指向第一个属性
-                    rec.content = AddRecord(q, table);
+                    rec.pos = { filename, k, searched_record * record_length };
+                    rec.content = addRecord(curRecord, table);
                     T.push_back(rec);
                 }
             }
-            else p += record_length;
-            if (++searched_record % (table.record_per_block) != 0) break;
+
+            curRecord += record_length;
+            if (++searched_record % (table.record_per_block) == 0) break;
         }
     }
 	return T;
@@ -184,9 +158,9 @@ void RecordManager::insertRecord(const string &filename, const Table &table, con
     buffer->setBlockContent(filename, block_num - 1, offset, reinterpret_cast<char*>(&valid), sizeof(valid));
     //写数据
     offset += sizeof(valid);
-    for (auto iter = record.begin(); iter != record.end(); iter++) {
-        char *data = iter->translate<char*>();
-        buffer->setBlockContent(filename, block_num - 1, offset, data, iter->type.size);
-        offset += iter->type.size;
+    for (auto value : record) {
+        char *data = value.translate<char*>();
+        buffer->setBlockContent(filename, block_num - 1, offset, data, value.type.size);
+        offset += value.type.size;
     }
 }
