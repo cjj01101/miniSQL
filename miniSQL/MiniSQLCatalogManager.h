@@ -31,6 +31,9 @@ using index_file = map<string, vector<Index>>;
 
 class CatalogManager {
 public:
+    CatalogManager(const char *meta_table_file_name, const char *meta_index_file_name);
+    ~CatalogManager();
+
     void increaseRecordCount(const string &tablename);
 
     const Table &getTableInfo(const string &tablename) const;
@@ -44,6 +47,8 @@ public:
     void deleteIndexInfo(const string &tablename);
 
 private:
+    string meta_table_file_name;
+    string meta_index_file_name;
     table_file table;
     index_file index;
 };

@@ -7,6 +7,9 @@
 #include <string>
 #include <iostream>
 
+#define META_TABLE_FILE_PATH "../META_TABLE.table"
+#define META_INDEX_FILE_PATH "../META_INDEX.table"
+
 /*                                          */
 /*                                          */
 /*                基本类型                  */
@@ -14,7 +17,7 @@
 /*                                          */
 
 enum class BaseType {
-    CHAR, INT, FLOAT
+    CHAR = 0, INT, FLOAT
 };
 
 struct Type {
@@ -25,6 +28,16 @@ struct Type {
 
     bool operator==(const Type &rhs) { return (btype == rhs.btype && size == rhs.size); }
     bool operator!=(const Type &rhs) { return !(*this == rhs); }
+    friend std::ostream &operator<<(std::ostream &os, Type type) {
+        os << (int)type.btype << " " << type.size;
+        return os;
+    }
+    friend std::istream &operator>>(std::istream &is, Type &type) {
+        int type_id;
+        is >> type_id >> type.size;
+        type.btype = static_cast<BaseType>(type_id);
+        return is;
+    }
 };
 
 struct Value {
