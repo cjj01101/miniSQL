@@ -1,9 +1,9 @@
 #include "MiniSQLCatalogManager.h"
 
-void CatalogManager::modifyRecordCount(const string &tablename, int diff) {
+void CatalogManager::increaseRecordCount(const string &tablename) {
     auto t = table.find(tablename);
     if (table.end() == t) throw MiniSQLException("Table Doesn't Exist!");
-    table[tablename].record_count += diff;
+    table[tablename].occupied_record_count++;
 }
 
 const Table &CatalogManager::getTableInfo(const string &tablename) const {
@@ -17,7 +17,7 @@ void CatalogManager::addTableInfo(const string &tablename, const vector<Attr> &a
 
     size_t length = 1;
     for (auto attr : attrs) length += attr.type.size;
-    table[tablename] = { attrs, PAGESIZE / length, 0 };
+    table[tablename] = { attrs, length, 0 };
     index[tablename];
 }
 
