@@ -70,12 +70,14 @@ void RecordManager::dropTable(const string &tablename) {
 }
 /*
 select
-input:filename,Table,Predicate
+input:tablename,Table,Predicate
 output:返回记录（集成）
 找文件头，一块一块载入buffer，每载入一块就一条一条查，在valid bit为1的记录中比较Predicate
 然后加入一个set
 */
-ReturnTable RecordManager::selectRecord(const string &filename, const Table &table, const Predicate &pred){
+ReturnTable RecordManager::selectRecord(const string &tablename, const Table &table, const Predicate &pred){
+    string filename = "../" + tablename + ".table";
+
 	int searched_record = 0;
 	int block_num = getBlockNum(table);
 	int record_length = getRecordLength(table);
@@ -133,19 +135,21 @@ void RecordManager::deleteRecord(const Position &pos) {
 }
 /*
 insert
-input:filename,Table，Record
+input:tablename,Table，Record
 output:none
 插入需要检查unique属性还有主键属性是否重复，throw异常
 然后找到文件最后一块的最末尾，插记录，valid bit置为1
 */
-void RecordManager::insertRecord(const string &filename, const Table &table, const Record &record) {
+void RecordManager::insertRecord(const string &tablename, const Table &table, const Record &record) {
+    string filename = "../" + tablename + ".table";
+
 	//检测冲突
     auto value_ptr = record.begin();
     for (auto attr = table.attrs.begin(); attr != table.attrs.end(); attr++, value_ptr++) {
         if (attr->unique) {
             Predicate pred;
             pred[attr->name].push_back({ Compare::EQ, *value_ptr });
-            ReturnTable result = selectRecord(filename, table, pred);
+            ReturnTable result = selectRecord(tablename, table, pred);
             if(result.size() > 0) throw MiniSQLException("Duplicate Value on Unique Attribute!");
         }
     }

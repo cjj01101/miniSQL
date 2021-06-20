@@ -71,7 +71,7 @@ create table table1 (
 
 insert into table1 values (3, "abc", 4.5);
 insert into table1 values (4, "abc", 5.5);
-insert into table1 values (7, "abc", 5.5);
+insert into table1 values (7, "abc", 10.5);
 select * from table1 where id = 4 and money > 600 and name <> "amy";
 */
 
@@ -86,8 +86,7 @@ void  API::insertIntoTable(const string &tablename, Record &record) {
         value_ptr++;
     }
 
-    string filename = "../" + tablename + ".table";
-    RM->insertRecord(filename, table, record);
+    RM->insertRecord(tablename, table, record);
     CM->modifyRecordCount(tablename, 1);
 
     const auto &indexes = CM->getIndexInfo(tablename);
@@ -116,7 +115,11 @@ void  API::insertIntoTable(const string &tablename, Record &record) {
 void API::selectFromTable(const string &tablename, const Predicate &pred) {
     checkPredicate(tablename, pred);
 
-    const auto &indexes = CM->getIndexInfo(tablename);
+    const Table &table = CM->getTableInfo(tablename);
+    ReturnTable result = RM->selectRecord(tablename, table, pred);
+    cout << result.size();
+
+    /*const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &pred : pred) {
         for (const auto &index : indexes) {
             if (index.keys.end() == index.keys.find(pred.first)) continue;
@@ -138,7 +141,7 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
             case BaseType::FLOAT:    IM->createIndex<float>(tablename, index.name, size); break;
             }
         }
-    }
+    }*/
 }
 
 void API::deleteFromTable(const string &tablename, const Predicate &pred) {
