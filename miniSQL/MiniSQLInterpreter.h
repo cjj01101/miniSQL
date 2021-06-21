@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MiniSQLMeta.h"
+#include "MiniSQLCatalogManager.h"
 #include "MiniSQLAPI.h"
 #include <iostream>
 #include <regex>
@@ -50,4 +52,6 @@ private:
     const regex string_pattern = regex("(?:\"|')([\\s\\S]+)(?:\"|')");
     const regex condition_pattern = regex("(\\w+)\\s?(<=|>=|<>|=|<|>)\\s?([\\s\\S]+?)(?: and ([\\s\\S]+))?");
     //select * from t where a = 3 and b > 2.4 and d<>'adh' and f = "abd";
+
+	void ShowResult(Table table,ReturnTable T);
 };
