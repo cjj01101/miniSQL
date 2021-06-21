@@ -1,5 +1,7 @@
 #include "MiniSQLInterpreter.h"
 #include <sstream>
+#include <iomanip>
+
 
 Type Interpreter::getType(const string &type_string) {
     Type type(BaseType::INT, 4);
@@ -211,6 +213,30 @@ void Interpreter::start() {
         }
     }
 }
+
+void Interpreter::ShowResult(Table table, ReturnTable T) {
+	int i = 0;
+	int size[15];
+	for (auto iter = table.attrs.begin(); iter != table.attrs.end();iter++,i++) {
+		int datasize = (iter->type.btype==BaseType::CHAR) ? iter->type.size :12;
+		size[i] = (datasize < iter->name.size()) ? iter->name.size(): datasize;
+		cout.setf(ios::left);
+		cout << setw(size[i]) <<iter->name<<" ";
+	}
+	cout << endl;
+	i = 0;
+	for (auto iter = T.begin(); iter != T.end();iter++,i++) {
+		for (auto v = iter->content.begin(); v != iter->content.end();v++) {
+				char *data = v->translate<char*>();
+				cout.setf(ios::left);
+				cout << setw(size[i]) << *data << " ";
+		}
+		cout << endl;
+	}
+	//输出 "x row(s) affceted"
+	//输出时间
+}
+
 
 void Interpreter_test() {
     BufferManager BM;
