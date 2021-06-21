@@ -15,6 +15,31 @@ void API::checkPredicate(const string &tablename, const Predicate &pred) const {
     }
 }
 
+std::set<Value> API::filterEQCondition(const std::vector<Condition> &conds) const {
+    std::set<Value> eq;
+    for (auto cond : conds) {
+        if (cond.comp == Compare::EQ) {
+            if (eq.size() == 0) eq.insert(cond.data);
+            else if (eq.end() == eq.find(cond.data)) {
+                eq.clear();
+                break;
+            }
+        }
+    }
+    return eq;
+}
+
+std::set<Value> API::filterNECondition(const std::vector<Condition> &conds) const {
+    std::set<Value> ne;
+    for (auto cond : conds) {
+        if (cond.comp == Compare::NE) {
+            if (ne.end() == ne.find(cond.data)) ne.insert(cond.data);
+        }
+    }
+
+    return ne;
+}
+
 void API::createTable(const string &tablename, const std::vector<Attr> &attrs, const set<string> &primary_key) {
     CM->addTableInfo(tablename, attrs);
     RM->createTable(tablename);
@@ -128,10 +153,14 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
     ReturnTable result = RM->selectRecord(tablename, table, pred);
     cout << result.size();
 
-    /*const auto &indexes = CM->getIndexInfo(tablename);
+    const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &pred : pred) {
         for (const auto &index : indexes) {
             if (index.keys.end() == index.keys.find(pred.first)) continue;
+
+            filterEQCondition(pred.second);
+
+            //准备调用索引
             size_t basic_length = sizeof(bool) + sizeof(int) * 3;
             Type index_key_type;
             const Table &table = CM->getTableInfo(tablename);
@@ -145,12 +174,12 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
             }
             size_t size = (PAGESIZE - basic_length) / (sizeof(int) * 2 + index_key_type.size) - 1;
             switch (index_key_type.btype) {
-            case BaseType::CHAR:    IM->createIndex<FLString>(tablename, index.name, size); break;
-            case BaseType::INT:    IM->createIndex<int>(tablename, index.name, size); break;
-            case BaseType::FLOAT:    IM->createIndex<float>(tablename, index.name, size); break;
+            case BaseType::CHAR:    IM->selectFromIndex<FLString>(tablename, index.name, size); break;
+            case BaseType::INT:    IM->selectFromIndex<int>(tablename, index.name, size); break;
+            case BaseType::FLOAT:    IM->selectFromIndex<float>(tablename, index.name, size); break;
             }
         }
-    }*/
+    }
 }
 
 void API::deleteFromTable(const string &tablename, const Predicate &pred) {

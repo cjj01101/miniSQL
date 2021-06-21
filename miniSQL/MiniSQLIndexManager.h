@@ -59,6 +59,12 @@ public:
     }
 
     template<typename KeyType>
+    vector<int> selectFromIndex(const string &tablename, const string &indexname, int size) {
+        string filename = INDEX_FILE_PATH(tablename, indexname);
+        BPlusTree<KeyType, int> tree(buffer, filename, size);
+    }
+
+    template<typename KeyType>
     void removeFromIndex(const string &tablename, const string &indexname, int size, const KeyType &key) {
         string filename = INDEX_FILE_PATH(tablename, indexname);
         BPlusTree<KeyType, int> tree(buffer, filename, size);

@@ -28,14 +28,14 @@ void BPlusTree_test() {
     }
 
     BPT.print();
-    auto it_2 = BPT.findData(8);
-    if(it_2 != BPT.end()) cout << *it_2 << endl;
+    auto it_2 = BPT.getStart(20, false);
+    if (it_2 != BPT.end()) cout << (*it_2).first << endl;
 
     for (auto it = BPT.begin(); it != BPT.end(); it.next()) {
-        cout << *it << "->";
+        cout << (*it).first << "->";
     }
 
-    for (auto i : remove_list) {
+    /*for (auto i : remove_list) {
         try {
             BPT.removeData(i);
             BPT.print();
@@ -44,5 +44,5 @@ void BPlusTree_test() {
             if (e == BPlusTreeException::KeyNotExist) cout << i << " Not Found!\n";
         }
         cout << "----------------\n";
-    }
+    }*/
 }
