@@ -60,8 +60,10 @@ public:
 
     template<typename KeyType>
     vector<int> selectFromIndex(const string &tablename, const string &indexname, int size) {
+        vector<int> pos;
         string filename = INDEX_FILE_PATH(tablename, indexname);
         BPlusTree<KeyType, int> tree(buffer, filename, size);
+        return pos;
     }
 
     template<typename KeyType>

@@ -184,6 +184,7 @@ void Interpreter::parse_input(const string &input) {
         if (!inf.is_open()) throw MiniSQLException("File Doesn't Exist!");
         Interpreter interp(core, inf, out);
         interp.start();
+        inf.close();
     }
     else if (regex_match(input, result, quit_pattern)) {
         throw InterpreterQuit();
@@ -214,7 +215,7 @@ void Interpreter::start() {
     }
 }
 
-void Interpreter::ShowResult(Table table, ReturnTable T) {
+void Interpreter::ShowResult(const Table &table, const ReturnTable &T) {
 	int i = 0;
 	int size[15];
 	for (auto iter = table.attrs.begin(); iter != table.attrs.end();iter++,i++) {

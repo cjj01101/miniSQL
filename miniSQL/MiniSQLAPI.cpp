@@ -16,28 +16,66 @@ void API::checkPredicate(const string &tablename, const Predicate &pred) const {
 }
 
 std::set<Value> API::filterEQCondition(const std::vector<Condition> &conds) const {
-    std::set<Value> eq;
+    std::set<Value> eqCond;
     for (auto cond : conds) {
         if (cond.comp == Compare::EQ) {
-            if (eq.size() == 0) eq.insert(cond.data);
-            else if (eq.end() == eq.find(cond.data)) {
-                eq.clear();
+            if (eqCond.size() == 0) eqCond.insert(cond.data);
+            else if (eqCond.end() == eqCond.find(cond.data)) {
+                eqCond.clear();
                 break;
             }
         }
     }
-    return eq;
+    return eqCond;
 }
 
 std::set<Value> API::filterNECondition(const std::vector<Condition> &conds) const {
-    std::set<Value> ne;
+    std::set<Value> neCond;
     for (auto cond : conds) {
         if (cond.comp == Compare::NE) {
-            if (ne.end() == ne.find(cond.data)) ne.insert(cond.data);
+            if (neCond.end() == neCond.find(cond.data)) neCond.insert(cond.data);
         }
     }
 
-    return ne;
+    return neCond;
+}
+
+std::map<Compare, Value> API::filterGCondition(const std::vector<Condition> &conds) const {
+    std::map<Compare, Value> gCond;
+    for (auto cond : conds) {
+        if (cond.comp == Compare::GE || cond.comp == Compare::GT) {
+            if (gCond.size() == 0) gCond.insert(make_pair(cond.comp, cond.data));
+            else {
+                Compare old_comp = gCond.begin()->first;
+                Value old_data = gCond.begin()->second;
+                if (old_data < cond.data || (old_comp == Compare::GE && cond.comp == Compare::GT && old_data == cond.data)) {
+                    gCond.clear();
+                    gCond.insert(make_pair(cond.comp, cond.data));
+                }
+                break;
+            }
+        }
+    }
+    return gCond;
+}
+
+std::map<Compare, Value> API::filterLCondition(const std::vector<Condition> &conds) const {
+    std::map<Compare, Value> lCond;
+    for (auto cond : conds) {
+        if (cond.comp == Compare::LE || cond.comp == Compare::LT) {
+            if (lCond.size() == 0) lCond.insert(make_pair(cond.comp, cond.data));
+            else {
+                Compare old_comp = lCond.begin()->first;
+                Value old_data = lCond.begin()->second;
+                if (old_data > cond.data || (old_comp == Compare::LE && cond.comp == Compare::LT && old_data == cond.data)) {
+                    lCond.clear();
+                    lCond.insert(make_pair(cond.comp, cond.data));
+                }
+                break;
+            }
+        }
+    }
+    return lCond;
 }
 
 void API::createTable(const string &tablename, const std::vector<Attr> &attrs, const set<string> &primary_key) {
@@ -158,8 +196,6 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
         for (const auto &index : indexes) {
             if (index.keys.end() == index.keys.find(pred.first)) continue;
 
-            filterEQCondition(pred.second);
-
             //准备调用索引
             size_t basic_length = sizeof(bool) + sizeof(int) * 3;
             Type index_key_type;
@@ -173,6 +209,8 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
                 }
             }
             size_t size = (PAGESIZE - basic_length) / (sizeof(int) * 2 + index_key_type.size) - 1;
+
+            filterEQCondition(pred.second);
             switch (index_key_type.btype) {
             case BaseType::CHAR:    IM->selectFromIndex<FLString>(tablename, index.name, size); break;
             case BaseType::INT:    IM->selectFromIndex<int>(tablename, index.name, size); break;
@@ -187,7 +225,7 @@ void API::deleteFromTable(const string &tablename, const Predicate &pred) {
 
     const Table &table = CM->getTableInfo(tablename);
     ReturnTable result = RM->selectRecord(tablename, table, pred);
-    for (const auto &record : result) RM->deleteRecord(record.pos);
+    for (const auto &record : result) RM->deleteRecord(tablename, record.pos);
 
     const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &index : indexes) {

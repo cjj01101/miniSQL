@@ -103,7 +103,7 @@ ReturnTable RecordManager::selectRecord(const string &tablename, const Table &ta
                 if (satisfied) {//循环之后satisfied仍为1 or 没有where条件
                     //加入set
                     RecordInfo rec;
-                    rec.pos = { filename, k, searched_record * record_length };
+                    rec.pos = { k, searched_record * record_length };
                     rec.content = addRecord(curRecord + 1, table);
                     T.push_back(rec);
                 }
@@ -122,9 +122,10 @@ input:table_name,Table,Predicate
 output:none
 传入position，把buffer中相应块dirty=true，该记录的valid bit置为false
 */
-void RecordManager::deleteRecord(const Position &pos) {
+void RecordManager::deleteRecord(const string &tablename, const Position &pos) {
+    string filename = TABLE_FILE_PATH(tablename);
     bool valid = false;
-    buffer->setBlockContent(pos.filename, pos.block_id, pos.offset, reinterpret_cast<char*>(&valid), sizeof(valid));
+    buffer->setBlockContent(filename, pos.block_id, pos.offset, reinterpret_cast<char*>(&valid), sizeof(valid));
 }
 /*
 insert
