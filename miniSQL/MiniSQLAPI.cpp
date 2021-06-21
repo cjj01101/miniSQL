@@ -72,7 +72,15 @@ create table table1 (
 insert into table1 values (3, "abc", 4.5);
 insert into table1 values (4, "abc", 5.5);
 insert into table1 values (7, "abc", 10.5);
+delete from table1 where id = 7;
+insert into table1 values (7, "abc", 10.5);
 select * from table1 where id = 4 and money > 600 and name <> "amy";
+
+create table table2 (
+ no int,
+ name char(20) unique,
+ salary float
+);
 */
 
 void  API::insertIntoTable(const string &tablename, Record &record) {
@@ -87,7 +95,7 @@ void  API::insertIntoTable(const string &tablename, Record &record) {
     }
 
     RM->insertRecord(tablename, table, record);
-    CM->modifyRecordCount(tablename, 1);
+    CM->increaseRecordCount(tablename);
 
     const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &index : indexes) {
@@ -103,6 +111,7 @@ void  API::insertIntoTable(const string &tablename, Record &record) {
                 value_ptr++;
             }
         }
+        if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
         size_t size = (PAGESIZE - basic_length) / (sizeof(int) * 2 + index_key_type.size) - 1;
         switch (index_key_type.btype) {
         case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, index.name, size, FLString(value_ptr->translate<char*>()),0); break;
@@ -147,12 +156,39 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
 void API::deleteFromTable(const string &tablename, const Predicate &pred) {
     checkPredicate(tablename, pred);
 
+    const Table &table = CM->getTableInfo(tablename);
+    ReturnTable result = RM->selectRecord(tablename, table, pred);
+    for (const auto &record : result) RM->deleteRecord(record.pos);
+
     const auto &indexes = CM->getIndexInfo(tablename);
+    for (const auto &index : indexes) {
+        size_t basic_length = sizeof(bool) + sizeof(int) * 3;
+        Type index_key_type;
+        for (const auto &record : result) {
+            auto value_ptr = record.content.begin();
+            for (const auto &key : index.keys) {
+                for (const auto &attr : table.attrs) {
+                    if (attr.name == key) {
+                        index_key_type = attr.type;
+                        break;
+                    }
+                    value_ptr++;
+                }
+            }
+            if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
+            size_t size = (PAGESIZE - basic_length) / (sizeof(int) * 2 + index_key_type.size) - 1;
+            switch (index_key_type.btype) {
+            case BaseType::CHAR:    IM->removeFromIndex<FLString>(tablename, index.name, size, FLString(value_ptr->translate<char*>())); break;
+            case BaseType::INT:    IM->removeFromIndex<int>(tablename, index.name, size, value_ptr->translate<int>()); break;
+            case BaseType::FLOAT:    IM->removeFromIndex<float>(tablename, index.name, size, value_ptr->translate<float>()); break;
+            }
+        }
+    }
 }
 
 void API_test() {
     BufferManager BM;
-    CatalogManager CM;
+    CatalogManager CM(META_TABLE_FILE_PATH, META_INDEX_FILE_PATH);
     RecordManager RM(&BM);
     IndexManager IM(&BM);
     API core(&CM, &RM, &IM);

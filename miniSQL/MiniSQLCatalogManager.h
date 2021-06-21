@@ -5,7 +5,6 @@
 #include <vector>
 #include <set>
 #include <map>
-using std::initializer_list;
 using std::vector;
 using std::string;
 using std::map;
@@ -18,8 +17,8 @@ struct Attr {
 };
 struct Table {
     vector<Attr> attrs;
-    size_t record_per_block;
-    int record_count;
+    size_t record_length;
+    int occupied_record_count;
 };
 using table_file = map<string, Table>;
 
@@ -32,10 +31,10 @@ using index_file = map<string, vector<Index>>;
 
 class CatalogManager {
 public:
-    index_file &getIndexFile() { return index; }
-    table_file &getTableFile() { return table; }
+    CatalogManager(const char *meta_table_file_name, const char *meta_index_file_name);
+    ~CatalogManager();
 
-    void modifyRecordCount(const string &tablename, int diff);
+    void increaseRecordCount(const string &tablename);
 
     const Table &getTableInfo(const string &tablename) const;
     void addTableInfo(const string &tablename, const vector<Attr> &attrs);
@@ -48,6 +47,8 @@ public:
     void deleteIndexInfo(const string &tablename);
 
 private:
+    string meta_table_file_name;
+    string meta_index_file_name;
     table_file table;
     index_file index;
 };

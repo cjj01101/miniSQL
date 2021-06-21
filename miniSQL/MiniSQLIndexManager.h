@@ -5,6 +5,7 @@
 using std::string;
 
 #define MAXCHARSIZE 255
+#define INDEX_FILE_PATH(tablename, indexname) ("../" + (tablename) + "_" + (indexname) + ".index")
 
 struct FLString
 {
@@ -39,19 +40,19 @@ public:
 
     template<typename KeyType>
     void createIndex(const string &tablename, const string &indexname, int size) {
-        string filename = "../" + tablename + "_" + indexname + ".index";
+        string filename = INDEX_FILE_PATH(tablename, indexname);
         BPlusTree<KeyType, int> newTree(buffer, filename, size);
     }
 
     void dropIndex(const string &tablename, const string &indexname) {
-        string filename = "../" + tablename + "_" + indexname + ".index";
+        string filename = INDEX_FILE_PATH(tablename, indexname);
         buffer->setEmpty(filename);
         remove(filename.data());
     }
 
     template<typename KeyType>
     void insertIntoIndex(const string &tablename, const string &indexname, int size, const KeyType &key, const int pos) {
-        string filename = "../" + tablename + "_" + indexname + ".index";
+        string filename = INDEX_FILE_PATH(tablename, indexname);
         BPlusTree<KeyType, int> tree(buffer, filename, size);
         try { tree.insertData(key, pos); }
         catch (BPlusTreeException &e) { throw MiniSQLException(e); }
@@ -59,7 +60,7 @@ public:
 
     template<typename KeyType>
     void removeFromIndex(const string &tablename, const string &indexname, int size, const KeyType &key) {
-        string filename = "../" + tablename + "_" + indexname + ".index";
+        string filename = INDEX_FILE_PATH(tablename, indexname);
         BPlusTree<KeyType, int> tree(buffer, filename, size);
         try { tree.removeData(key); }
         catch (BPlusTreeException &e) { throw MiniSQLException(e); }

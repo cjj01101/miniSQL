@@ -20,8 +20,6 @@ public:
 private:
 	//计算表所在文件有多少块
 	int getBlockNum(const Table &table) const;
-	//计算一条记录有多少位（包括valid bit）
-	int getRecordLength(const Table &table) const;
 	//判断记录是否符合条件
 	bool isFit(const Value &v, const std::vector<Condition> &cond) const;
 	//集成符合条件的记录

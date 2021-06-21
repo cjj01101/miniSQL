@@ -208,7 +208,7 @@ void Interpreter::start() {
 
 void Interpreter_test() {
     BufferManager BM;
-    CatalogManager CM;
+    CatalogManager CM(META_TABLE_FILE_PATH, META_INDEX_FILE_PATH);
     RecordManager RM(&BM);
     IndexManager IM(&BM);
     API core(&CM, &RM, &IM);
