@@ -15,13 +15,108 @@ void API::checkPredicate(const string &tablename, const Predicate &pred) const {
     }
 }
 
+std::map<Compare, std::set<Value>> API::filterCondition(const std::vector<Condition> &conds) const {
+    std::map<Compare, std::set<Value>> newCond;
+
+    //合并范围条件
+    for (auto cond : conds) {
+        Compare comp = cond.comp;
+        Value data = cond.data;
+        if (comp == Compare::GE || comp == Compare::GT) {
+            auto gCond = newCond.find(Compare::GE);
+            if (newCond.end() == gCond) gCond = newCond.find(Compare::GT);
+            if (newCond.end() == gCond) newCond[comp].insert(data);
+            else {
+                Compare old_comp = gCond->first;
+                Value old_data = *(gCond->second.begin());
+                if (old_data < data || (old_comp == Compare::GE && comp == Compare::GT && old_data == data)) {
+                    newCond.erase(gCond);
+                    newCond[comp].insert(data);
+                }
+            }
+        }
+        else if (comp == Compare::LE || comp == Compare::LT) {
+            auto lCond = newCond.find(Compare::LE);
+            if (newCond.end() == lCond) lCond = newCond.find(Compare::LT);
+            if (newCond.end() == lCond) newCond[comp].insert(data);
+            else {
+                Compare old_comp = lCond->first;
+                Value old_data = *(lCond->second.begin());
+                if (old_data > data || (old_comp == Compare::LE && comp == Compare::LT && old_data == data)) {
+                    newCond.erase(lCond);
+                    newCond[comp].insert(data);
+                }
+            }
+        }
+    }
+
+    //两方向范围冲突判断
+    auto gCond = newCond.find(Compare::GE);
+    if (newCond.end() == gCond) gCond = newCond.find(Compare::GT);
+    auto lCond = newCond.find(Compare::LE);
+    if (newCond.end() == lCond) lCond = newCond.find(Compare::LT);
+
+    bool hasLCond = (newCond.end() != lCond);
+    bool hasGCond = (newCond.end() != gCond);
+    if (hasLCond && hasGCond) {
+        if (*(lCond->second.begin()) < *(gCond->second.begin()) ||
+           (*(lCond->second.begin()) == *(gCond->second.begin()) && !(lCond->first == Compare::LE && gCond->first == Compare::GE))) {
+            return std::map<Compare, std::set<Value>>();
+        }
+    }
+
+    //合并相等条件
+    for (auto cond : conds) {
+        if (cond.comp == Compare::EQ) {
+            Value data = cond.data;
+            //判断是否在范围内
+            if (hasLCond && (data > *(lCond->second.begin()) || (data == *(lCond->second.begin()) && lCond->first == Compare::LT))) {
+                return std::map<Compare, std::set<Value>>();
+            }
+            if (hasGCond && (data < *(gCond->second.begin()) || (data == *(gCond->second.begin()) && gCond->first == Compare::GT))) {
+                return std::map<Compare, std::set<Value>>();
+            }
+            //判断等号是否冲突
+            auto eqCond = newCond.find(Compare::EQ);
+            if (newCond.end() != eqCond) {
+                if(data != *(eqCond->second.begin())) return std::map<Compare, std::set<Value>>();
+            }
+            else {
+                newCond.clear();
+                hasLCond = hasGCond = false;
+                newCond[Compare::EQ].insert(data);
+            }
+        }
+    }
+
+    //合并不等条件
+    for (auto cond : conds) {
+        if (cond.comp == Compare::NE) {
+            Value data = cond.data;
+            
+            //判断等号是否冲突
+            auto eqCond = newCond.find(Compare::EQ);
+            if (newCond.end() != eqCond) {
+                if (data == *(eqCond->second.begin())) return std::map<Compare, std::set<Value>>();
+            }
+            //判断是否在范围内
+            else if ((!hasLCond || (hasLCond && (data < *(lCond->second.begin()) || (data == *(lCond->second.begin()) && lCond->first == Compare::LE)))) &&
+                (!hasGCond || (hasGCond && (data > *(gCond->second.begin()) || (data == *(gCond->second.begin()) && gCond->first == Compare::GE))))) {
+                newCond[Compare::NE].insert(data);
+            }
+        }
+    }
+
+    return newCond;
+}
+
 std::set<Value> API::filterEQCondition(const std::vector<Condition> &conds) const {
     std::set<Value> eqCond;
     for (auto cond : conds) {
         if (cond.comp == Compare::EQ) {
             if (eqCond.size() == 0) eqCond.insert(cond.data);
             else if (eqCond.end() == eqCond.find(cond.data)) {
-                eqCond.clear();
+                eqCond.insert(cond.data);
                 break;
             }
         }
@@ -52,7 +147,6 @@ std::map<Compare, Value> API::filterGCondition(const std::vector<Condition> &con
                     gCond.clear();
                     gCond.insert(make_pair(cond.comp, cond.data));
                 }
-                break;
             }
         }
     }
@@ -71,7 +165,6 @@ std::map<Compare, Value> API::filterLCondition(const std::vector<Condition> &con
                     lCond.clear();
                     lCond.insert(make_pair(cond.comp, cond.data));
                 }
-                break;
             }
         }
     }
@@ -109,7 +202,7 @@ void API::createIndex(const string &tablename, const string &indexname, const se
         }
         if(!key_exists) throw MiniSQLException("Invalid Index Key Identifier!");
     }
-    size_t size = (PAGESIZE - basic_length) / (sizeof(int) * 2 + primary_key_type.size) - 1;
+    size_t size = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + primary_key_type.size) - 1;
 
     CM->addIndexInfo(tablename, indexname, keys);
     switch (primary_key_type.btype) {
@@ -122,6 +215,44 @@ void API::createIndex(const string &tablename, const string &indexname, const se
 void API::dropIndex(const string &tablename, const string &indexname) {
     CM->deleteIndexInfo(tablename, indexname);
     IM->dropIndex(tablename, indexname);
+}
+
+void  API::insertIntoTable(const string &tablename, Record &record) {
+    const Table &table = CM->getTableInfo(tablename);
+    if (table.attrs.size() != record.size()) throw MiniSQLException("Wrong Number of Inserted Values!");
+
+    //Value转换
+    auto value_ptr = record.begin();
+    for (const auto &attr : table.attrs) {
+        value_ptr->convertTo(attr.type);
+        value_ptr++;
+    }
+
+    Position insertPos = RM->insertRecord(tablename, table, record);
+    CM->increaseRecordCount(tablename);
+
+    const auto &indexes = CM->getIndexInfo(tablename);
+    for (const auto &index : indexes) {
+        size_t basic_length = sizeof(bool) + sizeof(int) * 3;
+        Type index_key_type;
+        value_ptr = record.begin();
+        for (const auto &key : index.keys) {
+            for (const auto &attr : table.attrs) {
+                if (attr.name == key) {
+                    index_key_type = attr.type;
+                    break;
+                }
+                value_ptr++;
+            }
+        }
+        if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
+        size_t size = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + index_key_type.size) - 1;
+        switch (index_key_type.btype) {
+        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, index.name, size, FLString(value_ptr->translate<char*>()),insertPos); break;
+        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, index.name, size, value_ptr->translate<int>(), insertPos); break;
+        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, index.name, size, value_ptr->translate<float>(), insertPos); break;
+        }
+    }
 }
 
 /*
@@ -146,57 +277,21 @@ create table table2 (
 );
 */
 
-void  API::insertIntoTable(const string &tablename, Record &record) {
-    const Table &table = CM->getTableInfo(tablename);
-    if (table.attrs.size() != record.size()) throw MiniSQLException("Wrong Number of Inserted Values!");
-
-    //Value转换
-    auto value_ptr = record.begin();
-    for (const auto &attr : table.attrs) {
-        value_ptr->convertTo(attr.type);
-        value_ptr++;
-    }
-
-    RM->insertRecord(tablename, table, record);
-    CM->increaseRecordCount(tablename);
-
-    const auto &indexes = CM->getIndexInfo(tablename);
-    for (const auto &index : indexes) {
-        size_t basic_length = sizeof(bool) + sizeof(int) * 3;
-        Type index_key_type;
-        value_ptr = record.begin();
-        for (const auto &key : index.keys) {
-            for (const auto &attr : table.attrs) {
-                if (attr.name == key) {
-                    index_key_type = attr.type;
-                    break;
-                }
-                value_ptr++;
-            }
-        }
-        if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
-        size_t size = (PAGESIZE - basic_length) / (sizeof(int) * 2 + index_key_type.size) - 1;
-        switch (index_key_type.btype) {
-        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, index.name, size, FLString(value_ptr->translate<char*>()),0); break;
-        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, index.name, size, value_ptr->translate<int>(),0); break;
-        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, index.name, size, value_ptr->translate<float>(),0); break;
-        }
-    }
-}
-
 void API::selectFromTable(const string &tablename, const Predicate &pred) {
     checkPredicate(tablename, pred);
 
     const Table &table = CM->getTableInfo(tablename);
     ReturnTable result = RM->selectRecord(tablename, table, pred);
-    cout << result.size();
+    for (auto res : result) {
+        cout << res.pos.block_id << " " << res.pos.offset << endl;
+    }
 
     const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &pred : pred) {
         for (const auto &index : indexes) {
             if (index.keys.end() == index.keys.find(pred.first)) continue;
 
-            //准备调用索引
+            //计算索引size
             size_t basic_length = sizeof(bool) + sizeof(int) * 3;
             Type index_key_type;
             const Table &table = CM->getTableInfo(tablename);
@@ -208,13 +303,65 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
                     }
                 }
             }
-            size_t size = (PAGESIZE - basic_length) / (sizeof(int) * 2 + index_key_type.size) - 1;
+            if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
+            size_t size = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + index_key_type.size) - 1;
 
-            filterEQCondition(pred.second);
-            switch (index_key_type.btype) {
-            case BaseType::CHAR:    IM->selectFromIndex<FLString>(tablename, index.name, size); break;
-            case BaseType::INT:    IM->selectFromIndex<int>(tablename, index.name, size); break;
-            case BaseType::FLOAT:    IM->selectFromIndex<float>(tablename, index.name, size); break;
+            vector<Position> possible_poses;
+
+            //条件合并
+            auto newCond = filterCondition(pred.second);
+            if (newCond.size() == 0) return;
+            if(newCond.end() != newCond.find(Compare::EQ)) {
+                const Value &eqValue = *(newCond.find(Compare::EQ)->second.begin());
+                Position pos;
+                switch (index_key_type.btype) {
+                case BaseType::CHAR:    pos = IM->findOneFromIndex<FLString>(tablename, index.name, size, eqValue.translate<char*>()); break;
+                case BaseType::INT:    pos = IM->findOneFromIndex<int>(tablename, index.name, size, eqValue.translate<int>()); break;
+                case BaseType::FLOAT:    pos = IM->findOneFromIndex<float>(tablename, index.name, size, eqValue.translate<float>()); break;
+                }
+                possible_poses.push_back(pos);
+            } else {
+                switch (index_key_type.btype) {
+                case BaseType::CHAR: {
+                    std::pair<Compare, FLString> startKey = make_pair(Compare::EQ, FLString(""));
+                    std::pair<Compare, FLString> endKey = make_pair(Compare::EQ, FLString(""));
+                    std::set<FLString> neKeys;
+                    if (newCond.end() != newCond.find(Compare::GE)) startKey = make_pair(Compare::GE, FLString(newCond.find(Compare::GE)->second.begin()->translate<char*>()));
+                    else if (newCond.end() != newCond.find(Compare::GT)) startKey = make_pair(Compare::GT, FLString(newCond.find(Compare::GT)->second.begin()->translate<char*>()));
+                    if (newCond.end() != newCond.find(Compare::LE)) endKey = make_pair(Compare::LE, FLString(newCond.find(Compare::LE)->second.begin()->translate<char*>()));
+                    else if (newCond.end() != newCond.find(Compare::LT)) endKey = make_pair(Compare::LT, FLString(newCond.find(Compare::LT)->second.begin()->translate<char*>()));
+                    if (newCond.end() != newCond.find(Compare::NE)) {
+                        for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(FLString(neKey.translate<char*>()));
+                    }
+                    IM->findRangeFromIndex<FLString>(tablename, index.name, size, startKey, endKey, neKeys, possible_poses); break;
+                }
+                case BaseType::INT: {
+                    std::pair<Compare, int> startKey = make_pair(Compare::EQ, 0);
+                    std::pair<Compare, int> endKey = make_pair(Compare::EQ, 0);
+                    std::set<int> neKeys;
+                    if (newCond.end() != newCond.find(Compare::GE)) startKey = make_pair(Compare::GE, newCond.find(Compare::GE)->second.begin()->translate<int>());
+                    else if (newCond.end() != newCond.find(Compare::GT)) startKey = make_pair(Compare::GT, newCond.find(Compare::GT)->second.begin()->translate<int>());
+                    if (newCond.end() != newCond.find(Compare::LE)) endKey = make_pair(Compare::LE, newCond.find(Compare::LE)->second.begin()->translate<int>());
+                    else if (newCond.end() != newCond.find(Compare::LT)) endKey = make_pair(Compare::LT, newCond.find(Compare::LT)->second.begin()->translate<int>());
+                    if (newCond.end() != newCond.find(Compare::NE)) {
+                        for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(neKey.translate<int>());
+                    }
+                    IM->findRangeFromIndex<int>(tablename, index.name, size, startKey, endKey, neKeys, possible_poses); break;
+                }
+                case BaseType::FLOAT: {
+                    std::pair<Compare, float> startKey = make_pair(Compare::EQ, 0);
+                    std::pair<Compare, float> endKey = make_pair(Compare::EQ, 0);
+                    std::set<float> neKeys;
+                    if (newCond.end() != newCond.find(Compare::GE)) startKey = make_pair(Compare::GE, newCond.find(Compare::GE)->second.begin()->translate<float>());
+                    else if (newCond.end() != newCond.find(Compare::GT)) startKey = make_pair(Compare::GT, newCond.find(Compare::GT)->second.begin()->translate<float>());
+                    if (newCond.end() != newCond.find(Compare::LE)) endKey = make_pair(Compare::LE, newCond.find(Compare::LE)->second.begin()->translate<float>());
+                    else if (newCond.end() != newCond.find(Compare::LT)) endKey = make_pair(Compare::LT, newCond.find(Compare::LT)->second.begin()->translate<float>());
+                    if (newCond.end() != newCond.find(Compare::NE)) {
+                        for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(neKey.translate<float>());
+                    }
+                    IM->findRangeFromIndex<float>(tablename, index.name, size, startKey, endKey, neKeys, possible_poses); break;
+                }
+                }
             }
         }
     }
@@ -243,7 +390,7 @@ void API::deleteFromTable(const string &tablename, const Predicate &pred) {
                 }
             }
             if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
-            size_t size = (PAGESIZE - basic_length) / (sizeof(int) * 2 + index_key_type.size) - 1;
+            size_t size = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + index_key_type.size) - 1;
             switch (index_key_type.btype) {
             case BaseType::CHAR:    IM->removeFromIndex<FLString>(tablename, index.name, size, FLString(value_ptr->translate<char*>())); break;
             case BaseType::INT:    IM->removeFromIndex<int>(tablename, index.name, size, value_ptr->translate<int>()); break;

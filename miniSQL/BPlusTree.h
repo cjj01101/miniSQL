@@ -39,7 +39,8 @@ public:
             if (node == nullptr) {
                 self = 0;
                 this->offset = 0;
-                key = data = nullptr;
+                key = nullptr;
+                data = nullptr;
                 return;
             }
             if (!(node->isLeaf)) throw BPlusTreeException::IteratorIllegal;
@@ -62,6 +63,11 @@ public:
         iter(const iter &rhs)
             : buffer(rhs.buffer), filename(rhs.filename), self(rhs.self), rank(rhs.rank), keyNum(rhs.keyNum), nextLeaf(rhs.nextLeaf), offset(rhs.offset)
         {
+            if (self == 0) {
+                key = nullptr;
+                data = nullptr;
+                return;
+            }
             key = new KeyType[rank + 1];
             data = new DataType[rank + 1];
             for (int i = 0; i < keyNum; i++) {
@@ -124,7 +130,7 @@ public:
 
     int findNextPath(const KeyType &guideKey) const;
     int splitNode(NodeType *parentNode);
-    void print() const {
+    /*void print() const {
         if (isLeaf) {
             std::cout << this->keyNum << "-Leaf:";
             for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "," << data[i] << "]";
@@ -138,7 +144,7 @@ public:
                 childNode.print();
             }
         }
-    }
+    }*/
 
     bool checkData(const KeyType &guideKey) const;
     int insertData(NodeType *parentNode, const KeyType &newKey, const DataType &newData);
@@ -586,10 +592,10 @@ public:
     const typename NodeType::iter end() { return NodeType::iter::iter(nullptr, 0); }
     typename NodeType::iter getStart(const KeyType &key, bool canEqual) const;
 
-    void print() const {
+    /*void print() const {
         const NodeType rootNode(buffer, filename, root, rank);
         rootNode.print();
-    }
+    }*/
 
 private:
     BufferManager *buffer;

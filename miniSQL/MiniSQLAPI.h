@@ -23,6 +23,7 @@ private:
     IndexManager *IM;
 
     void checkPredicate(const string &tablename, const Predicate &pred) const;
+    std::map<Compare, std::set<Value>> filterCondition(const std::vector<Condition> &conds) const;
     std::set<Value> filterEQCondition(const std::vector<Condition> &conds) const;
     std::set<Value> filterNECondition(const std::vector<Condition> &conds) const;
     std::map<Compare, Value> filterGCondition(const std::vector<Condition> &conds) const;

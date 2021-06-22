@@ -121,6 +121,7 @@ void Interpreter::parse_condition(string &content, smatch &result, Predicate &pr
 
         cout << "[Condition] " << name << op << pred[name].back().data << endl;
     }
+    if(!content.empty()) throw MiniSQLException("Illegal Comparation!");
 }
 
 void Interpreter::parse_input(const string &input) {

@@ -104,7 +104,7 @@ ReturnTable RecordManager::selectRecord(const string &tablename, const Table &ta
                     //加入set
                     RecordInfo rec;
                     rec.pos = { k, searched_record * record_length };
-                    rec.content = addRecord(curRecord + 1, table);
+                    rec.content = addRecord(curRecord + sizeof(bool), table);
                     T.push_back(rec);
                 }
             }
@@ -134,7 +134,7 @@ output:none
 插入需要检查unique属性还有主键属性是否重复，throw异常
 然后找到文件最后一块的最末尾，插记录，valid bit置为1
 */
-void RecordManager::insertRecord(const string &tablename, const Table &table, const Record &record) {
+Position RecordManager::insertRecord(const string &tablename, const Table &table, const Record &record) {
     string filename = TABLE_FILE_PATH(tablename);
 
 	//检测冲突
@@ -148,17 +148,20 @@ void RecordManager::insertRecord(const string &tablename, const Table &table, co
         }
     }
     //插入
-    int block_num = getBlockNum(table);
+    int inserted_block_num = getBlockNum(table) - 1;
     int record_per_block = PAGESIZE / table.record_length;
-    int offset = (table.occupied_record_count - record_per_block*(block_num - 1))*table.record_length;
+    int offset = (table.occupied_record_count - record_per_block*inserted_block_num)*table.record_length;
+    Position pos = { inserted_block_num, offset };
     //设置valid
     bool valid = true;
-    buffer->setBlockContent(filename, block_num - 1, offset, reinterpret_cast<char*>(&valid), sizeof(valid));
+    buffer->setBlockContent(filename, inserted_block_num, offset, reinterpret_cast<char*>(&valid), sizeof(valid));
     //写数据
     offset += sizeof(valid);
     for (const auto &value : record) {
         char *data = value.translate<char*>();
-        buffer->setBlockContent(filename, block_num - 1, offset, data, value.type.size);
+        buffer->setBlockContent(filename, inserted_block_num, offset, data, value.type.size);
         offset += value.type.size;
     }
+
+    return pos;
 }
