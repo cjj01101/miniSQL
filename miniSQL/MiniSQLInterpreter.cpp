@@ -55,7 +55,7 @@ void Interpreter::parse_table_definition(const string &tablename, string &conten
         trim(primary_key_name);
         primary_keys.insert(primary_key_name);
 
-        cout << "[Primary Key Definition] " << result[1] << endl;
+        //cout << "[Primary Key Definition] " << result[1] << endl;
         content.erase(result.position(0), result.length(0));
     }
 
@@ -72,7 +72,7 @@ void Interpreter::parse_table_definition(const string &tablename, string &conten
             attr_names.insert(name);
             attr_def.push_back({ name, type, unique });
             
-            cout << "[Attribute Definition] " << name << ": " << result[2] << result[3] << endl;
+            //cout << "[Attribute Definition] " << name << ": " << result[2] << result[3] << endl;
             has_attr = true;
         }
         else throw MiniSQLException("Illegal Attribute Definition!");
@@ -94,17 +94,17 @@ void Interpreter::parse_insert_value(const string &tablename, string &content, s
         if (regex_match(attr_value, result, integer_pattern)) {
             int value = stoi(result[1]);
             record.push_back(Value(Type(BaseType::INT, 4), &value));
-            cout << "[Integer Value] " << record.back() << endl;
+            //cout << "[Integer Value] " << record.back() << endl;
         }
         else if (regex_match(attr_value, result, float_pattern)) {
             float value = stof(result[1]);
             record.push_back(Value(Type(BaseType::FLOAT, 4), &value));
-            cout << "[Float Value] " << record.back() << endl;
+            //cout << "[Float Value] " << record.back() << endl;
         }
         else if (regex_match(attr_value, result, string_pattern)) {
             string value = result[1];
             record.push_back(Value(Type(BaseType::CHAR, value.size() + 1), value.data()));
-            cout << "[String Value] " << record.back() << endl;
+            //cout << "[String Value] " << record.back() << endl;
         }
         else throw MiniSQLException("Illegal Inserted Value!");
     }
@@ -141,7 +141,7 @@ void Interpreter::parse_condition(string &content, smatch &result, Predicate &pr
         }
         else throw MiniSQLException("Illegal Compared Value!");
 
-        cout << "[Condition] " << name << op << pred[name].back().data << endl;
+        //cout << "[Condition] " << name << op << pred[name].back().data << endl;
     }
     if(!content.empty()) throw MiniSQLException("Illegal Comparation!");
 }
@@ -157,13 +157,13 @@ void Interpreter::parse_input(const string &input) {
     if (regex_match(input, result, create_table_pattern)) {
         tablename = result[1];
         content = result[2];
-        cout << "Match CREATE TABLE!" << endl << "[table name] " << tablename << endl << "[content] " << content << endl;
+        //cout << "Match CREATE TABLE!" << endl << "[table name] " << tablename << endl << "[content] " << content << endl;
         parse_table_definition(tablename, content, result);
         cout << "Create Table Succeeds." << endl;
     }
     else if (regex_match(input, result, drop_table_pattern)) {
         tablename = result[1];
-        cout << "Match DROP TABLE!" << endl << "[table name] " << tablename << endl;
+        //cout << "Match DROP TABLE!" << endl << "[table name] " << tablename << endl;
         core->dropTable(tablename);
         cout << "Drop Table Succeeds." << endl;
     }
@@ -171,21 +171,21 @@ void Interpreter::parse_input(const string &input) {
         indexname = result[1];
         tablename = result[2];
         content = result[3];
-        cout << "Match CREATE INDEX!" << endl << "[table name] " << tablename << endl << "[index name] " << indexname << endl << "[content] " << content << endl;
+        //cout << "Match CREATE INDEX!" << endl << "[table name] " << tablename << endl << "[index name] " << indexname << endl << "[content] " << content << endl;
         core->createIndex(tablename, indexname, { content });
         cout << "Create Index Succeeds." << endl;
     }
     else if (regex_match(input, result, drop_index_pattern)) {
         indexname = result[1];
         tablename = result[2];
-        cout << "Match DROP INDEX!" << endl << "[table name] " << tablename << endl << "[index name] " << indexname << endl;
+        //cout << "Match DROP INDEX!" << endl << "[table name] " << tablename << endl << "[index name] " << indexname << endl;
         core->dropIndex(tablename, indexname);
         cout << "Drop Index Succeeds." << endl;
     }
     else if (regex_match(input, result, insert_pattern)) {
         tablename = result[1];
         content = result[2];
-        cout << "Match INSERT!" << endl << "[table name] " << tablename << endl << "[content] " << content << endl;
+        //cout << "Match INSERT!" << endl << "[table name] " << tablename << endl << "[content] " << content << endl;
         parse_insert_value(tablename, content, result);
         cout << "1 Row Successfully Inserted." << endl;
     }
@@ -193,7 +193,7 @@ void Interpreter::parse_input(const string &input) {
         tablename = result[1];
         content = result[2];
         trim(content);
-        cout << "Match SELECT!" << endl << "[table name] " << tablename << endl << "[conditions] " << content << endl;
+        //cout << "Match SELECT!" << endl << "[table name] " << tablename << endl << "[conditions] " << content << endl;
         Predicate pred;
         parse_condition(content, result, pred);
         SQLResult result = core->selectFromTable(tablename, pred);
@@ -208,7 +208,7 @@ void Interpreter::parse_input(const string &input) {
         tablename = result[1];
         content = result[2];
         trim(content);
-        cout << "Match DELETE!" << endl << "[table name] " << tablename << endl << "[conditions] " << content << endl;
+        //cout << "Match DELETE!" << endl << "[table name] " << tablename << endl << "[conditions] " << content << endl;
         Predicate pred;
         parse_condition(content, result, pred);
         int retCount = core->deleteFromTable(tablename, pred);
@@ -216,7 +216,7 @@ void Interpreter::parse_input(const string &input) {
     }
     else if (regex_match(input, result, execfile_pattern)) {
         string filename = result[1];
-        cout << "Match EXECFILE!" << endl << "[filename] " << result[1] << endl;
+        //cout << "Match EXECFILE!" << endl << "[filename] " << result[1] << endl;
         std::ifstream inf(filename);
         if (!inf.is_open()) throw MiniSQLException("File Doesn't Exist!");
         Interpreter interp(core, inf, out);
@@ -224,6 +224,7 @@ void Interpreter::parse_input(const string &input) {
         inf.close();
     }
     else if (regex_match(input, result, quit_pattern)) {
+        out << "Quit MiniSQL. See You Next Time~" << endl;
         throw InterpreterQuit();
     }
     else throw MiniSQLException("Syntax Error!");
@@ -239,20 +240,21 @@ void Interpreter::start() {
     
     while (true) {
         if (in.eof()) break;
+        out << "MiniSQL>> ";
         in.getline(buffer, IOBUFFER_CAPACITY, ';');
         in.ignore(1);
         input = regex_replace(buffer, regex("\\s+"), " ");
         trim(input);
-        out << input << endl;
+        //out << input << endl;
+        out << endl << "-------------- Result --------------" << endl;
         try {
             parse_input(input);
         } catch (InterpreterQuit) {
             break;
         } catch (MiniSQLException &e) {
-            cout << "--------------------------------" << endl;
             cout << "Error: " << e.getMessage() << endl;
-            cout << "--------------------------------" << endl;
         }
+        cout << "------------------------------------" << endl << endl;
     }
 }
 

@@ -19,8 +19,8 @@ public:
     void createIndex(const string &tablename, const string &indexname, const set<string> &keys);
     void dropIndex(const string &tablename, const string &indexname);
     void insertIntoTable(const string &tablename, Record &record);
-    SQLResult selectFromTable(const string &tablename, const Predicate &pred);
-    int deleteFromTable(const string &tablename, const Predicate &pred);
+    SQLResult selectFromTable(const string &tablename, Predicate &pred);
+    int deleteFromTable(const string &tablename, Predicate &pred);
 
 private:
     CatalogManager *CM;

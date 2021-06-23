@@ -129,6 +129,7 @@ void API::dropTable(const string &tablename) {
 void API::createIndex(const string &tablename, const string &indexname, const set<string> &keys) {
     const Table &table = CM->getTableInfo(tablename);
     Type primary_key_type;
+    int attr_pos = 0;
     size_t basic_length = sizeof(bool) + sizeof(int) * 3;
     for (const auto &key : keys) {
         bool key_exists = false;
@@ -139,6 +140,7 @@ void API::createIndex(const string &tablename, const string &indexname, const se
                 key_exists = true;
                 break;
             }
+            attr_pos++;
         }
         if(!key_exists) throw MiniSQLException("Invalid Index Key Identifier!");
     }
@@ -149,6 +151,15 @@ void API::createIndex(const string &tablename, const string &indexname, const se
     case BaseType::CHAR:    IM->createIndex<FLString>(tablename, indexname, size); break;
     case BaseType::INT:    IM->createIndex<int>(tablename, indexname, size); break;
     case BaseType::FLOAT:    IM->createIndex<float>(tablename, indexname, size); break;
+    }
+
+    ReturnTable T = selectFromTable(tablename, Predicate()).ret;
+    for (const auto &record : T) {
+        switch (primary_key_type.btype) {
+        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, indexname, size, FLString((record.content)[attr_pos].translate<char*>()), record.pos); break;
+        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, indexname, size, (record.content)[attr_pos].translate<int>(), record.pos); break;
+        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, indexname, size, (record.content)[attr_pos].translate<float>(), record.pos); break;
+        }
     }
 }
 
@@ -196,19 +207,19 @@ void API::insertIntoTable(const string &tablename, Record &record) {
 }
 
 /*
-create table table1 (
+create table t (
  id int,
  name char(20),
  money float unique,
  primary key (id)
 );
 
-insert into table1 values (3, "abc", 4.5);
-insert into table1 values (4, "abc", 5.5);
-insert into table1 values (7, "abc", 10.5);
-delete from table1 where id = 7;
-insert into table1 values (7, "abc", 10.5);
-select * from table1 where id = 4 and money > 600 and name <> "amy";
+insert into t values (3, "abc", 4.5);
+insert into t values (4, "abc", 5.5);
+insert into t values (7, "abc", 10.5);
+delete from t where id = 7;
+insert into t values (7, "abc", 10.5);
+select * from t where id = 4 and money > 600 and name <> "amy";
 
 create table table2 (
  no int,
@@ -217,7 +228,7 @@ create table table2 (
 );
 */
 
-SQLResult API::selectFromTable(const string &tablename, const Predicate &pred) {
+SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
     checkPredicate(tablename, pred);
 
     const Table &table = CM->getTableInfo(tablename);
@@ -225,9 +236,9 @@ SQLResult API::selectFromTable(const string &tablename, const Predicate &pred) {
 
     //尝试索引
     const auto &indexes = CM->getIndexInfo(tablename);
-    for (const auto &pr : pred) {
+    for (auto pred_ptr = pred.begin(); pred_ptr != pred.end(); pred_ptr++) {
         for (const auto &index : indexes) {
-            if (index.keys.end() == index.keys.find(pr.first)) continue;
+            if (index.keys.end() == index.keys.find(pred_ptr->first)) continue;
 
             //计算索引size
             size_t basic_length = sizeof(bool) + sizeof(int) * 3;
@@ -247,7 +258,7 @@ SQLResult API::selectFromTable(const string &tablename, const Predicate &pred) {
             vector<Position> possible_poses;
 
             //条件合并
-            auto newCond = filterCondition(pr.second);
+            auto newCond = filterCondition(pred_ptr->second);
             if (newCond.size() == 0) return SQLResult();
             if(newCond.end() != newCond.find(Compare::EQ)) {
                 const Value &eqValue = *(newCond.find(Compare::EQ)->second.begin());
@@ -302,6 +313,7 @@ SQLResult API::selectFromTable(const string &tablename, const Predicate &pred) {
                 }
             }
 
+            pred.erase(pred_ptr);
             result = RM->selectRecord(tablename, table, pred, possible_poses);
             return SQLResult{ table, result };
         }
@@ -311,7 +323,7 @@ SQLResult API::selectFromTable(const string &tablename, const Predicate &pred) {
     return SQLResult{ table, result };
 }
 
-int API::deleteFromTable(const string &tablename, const Predicate &pred) {
+int API::deleteFromTable(const string &tablename, Predicate &pred) {
     checkPredicate(tablename, pred);
 
     const Table &table = CM->getTableInfo(tablename);

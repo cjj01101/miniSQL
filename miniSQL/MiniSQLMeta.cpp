@@ -21,7 +21,16 @@ typename std::enable_if<std::is_pointer<T>::value, T>::type Value::translate() c
 
 template<typename T>
 typename std::enable_if<!std::is_pointer<T>::value, T>::type Value::translate() const {
-    if (std::is_same<T, int>::value || std::is_same<T, float>::value) return *reinterpret_cast<T*>(data);
+    if (std::is_same<T, int>::value) {
+        if (type.btype == BaseType::INT) return *reinterpret_cast<int*>(data);
+        else if (type.btype == BaseType::FLOAT) return (int)*reinterpret_cast<float*>(data);
+        else throw MiniSQLException("Type Incompatible!");
+    }
+    else if (std::is_same<T, float>::value) {
+        if (type.btype == BaseType::INT) return (float)*reinterpret_cast<int*>(data);
+        else if (type.btype == BaseType::FLOAT) return *reinterpret_cast<float*>(data);
+        else throw MiniSQLException("Type Incompatible!");
+    }
     else throw MiniSQLException("Type Unsupported!");
 }
 
