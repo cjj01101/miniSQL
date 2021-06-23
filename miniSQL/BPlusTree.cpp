@@ -11,7 +11,7 @@ void BPlusTree_test() {
     for (auto i : insert_list) {
         try {
             BPT.insertData(i, i);
-            BPT.print();
+            //BPT.print();
         }
         catch (BPlusTreeException &e) {
             if (e == BPlusTreeException::DuplicateKey) cout << i << " is Duplicate Key!\n";
@@ -27,18 +27,18 @@ void BPlusTree_test() {
         else cout << i << " doesn't exist." << endl;
     }
 
-    BPT.print();
-    auto it_2 = BPT.findData(8);
-    if(it_2 != BPT.end()) cout << *it_2 << endl;
+    //BPT.print();
+    auto it_2 = BPT.getStart(20, false);
+    if (it_2 != BPT.end()) cout << (*it_2).first << endl;
 
     for (auto it = BPT.begin(); it != BPT.end(); it.next()) {
-        cout << *it << "->";
+        cout << (*it).first << "->";
     }
 
     for (auto i : remove_list) {
         try {
             BPT.removeData(i);
-            BPT.print();
+            //BPT.print();
         }
         catch (BPlusTreeException &e) {
             if (e == BPlusTreeException::KeyNotExist) cout << i << " Not Found!\n";

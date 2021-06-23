@@ -69,7 +69,6 @@ struct Value {
 using Record = std::vector<Value>;
 
 typedef struct {
-    string filename;
     int block_id;
     int offset;
 } Position;

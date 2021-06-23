@@ -7,7 +7,7 @@ using std::map;
 using std::pair;
 
 #define PAGESIZE 4096   //一页4KB
-#define MAXPAGENUM 2 //最多100页
+#define MAXPAGENUM 100 //最多100页
 
 class BufferManager {
 private:

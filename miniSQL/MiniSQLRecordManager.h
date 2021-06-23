@@ -15,8 +15,9 @@ public:
 	void createTable(const string &tablename);
 	void dropTable(const string &tablename);
 	ReturnTable selectRecord(const string &tablename, const Table &table, const Predicate &pred);
-	void deleteRecord(const Position &pos);
-	void insertRecord(const string &tablename, const Table &table, const Record &record);
+    ReturnTable selectRecord(const string &tablename, const Table &table, const Predicate &pred, const std::vector<Position> &poses);
+	void deleteRecord(const string &tablename, const Position &pos);
+	Position insertRecord(const string &tablename, const Table &table, const Record &record);
 private:
 	//计算表所在文件有多少块
 	int getBlockNum(const Table &table) const;

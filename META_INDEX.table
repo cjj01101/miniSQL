@@ -1,2 +1,3 @@
-table2 1
-ind 1 name
+t 2
+PRIMARY_KEY 1 id
+IND 2 id money

@@ -2,6 +2,8 @@
 
 #include "MiniSQLAPI.h"
 #include <iostream>
+#include <istream>
+#include <fstream>
 #include <regex>
 using namespace std;
 
@@ -49,5 +51,6 @@ private:
     const regex float_pattern = regex("(-?\\d+(\\.\\d+)?)");
     const regex string_pattern = regex("(?:\"|')([\\s\\S]+)(?:\"|')");
     const regex condition_pattern = regex("(\\w+)\\s?(<=|>=|<>|=|<|>)\\s?([\\s\\S]+?)(?: and ([\\s\\S]+))?");
-    //select * from t where a = 3 and b > 2.4 and d<>'adh' and f = "abd";
+
+    void showResult(const Table &table, const ReturnTable &T);
 };

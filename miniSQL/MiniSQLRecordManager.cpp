@@ -103,8 +103,8 @@ ReturnTable RecordManager::selectRecord(const string &tablename, const Table &ta
                 if (satisfied) {//循环之后satisfied仍为1 or 没有where条件
                     //加入set
                     RecordInfo rec;
-                    rec.pos = { filename, k, searched_record * record_length };
-                    rec.content = addRecord(curRecord + 1, table);
+                    rec.pos = { k, searched_record * record_length };
+                    rec.content = addRecord(curRecord + sizeof(bool), table);
                     T.push_back(rec);
                 }
             }
@@ -116,15 +116,50 @@ ReturnTable RecordManager::selectRecord(const string &tablename, const Table &ta
 	return T;
 }
 
+ReturnTable RecordManager::selectRecord(const string &tablename, const Table &table, const Predicate &pred, const std::vector<Position> &poses) {
+    string filename = TABLE_FILE_PATH(tablename);
+
+    int record_length = table.record_length;
+    ReturnTable T;
+    for (auto pos : poses) {
+        char* curRecord = buffer->getBlockContent(filename, pos.block_id);//返回该页的头指针
+        curRecord += pos.offset + sizeof(bool);
+        char *p = curRecord;
+        //一个个属性和pred比对
+        bool satisfied = true;
+        for (const auto &attr : table.attrs) {
+            string attr_name = attr.name;
+            if (pred.end() != pred.find(attr_name)) {//找到了这个属性上的条件
+                //提取data进行比较
+                Value v(attr.type, p);
+                if (!isFit(v, pred.at(attr_name))) {//不合条件
+                    satisfied = false;
+                    break;
+                }
+            }
+            p += attr.type.size;
+        }
+        if (satisfied) {//循环之后satisfied仍为1 or 没有where条件
+            //加入set
+            RecordInfo rec;
+            rec.pos = pos;
+            rec.content = addRecord(curRecord, table);
+            T.push_back(rec);
+        }
+    }
+    return T;
+}
+
 /*
 delete
 input:table_name,Table,Predicate
 output:none
 传入position，把buffer中相应块dirty=true，该记录的valid bit置为false
 */
-void RecordManager::deleteRecord(const Position &pos) {
+void RecordManager::deleteRecord(const string &tablename, const Position &pos) {
+    string filename = TABLE_FILE_PATH(tablename);
     bool valid = false;
-    buffer->setBlockContent(pos.filename, pos.block_id, pos.offset, reinterpret_cast<char*>(&valid), sizeof(valid));
+    buffer->setBlockContent(filename, pos.block_id, pos.offset, reinterpret_cast<char*>(&valid), sizeof(valid));
 }
 /*
 insert
@@ -133,7 +168,7 @@ output:none
 插入需要检查unique属性还有主键属性是否重复，throw异常
 然后找到文件最后一块的最末尾，插记录，valid bit置为1
 */
-void RecordManager::insertRecord(const string &tablename, const Table &table, const Record &record) {
+Position RecordManager::insertRecord(const string &tablename, const Table &table, const Record &record) {
     string filename = TABLE_FILE_PATH(tablename);
 
 	//检测冲突
@@ -147,17 +182,20 @@ void RecordManager::insertRecord(const string &tablename, const Table &table, co
         }
     }
     //插入
-    int block_num = getBlockNum(table);
+    int inserted_block_num = getBlockNum(table) - 1;
     int record_per_block = PAGESIZE / table.record_length;
-    int offset = (table.occupied_record_count - record_per_block*(block_num - 1))*table.record_length;
+    int offset = (table.occupied_record_count - record_per_block*inserted_block_num)*table.record_length;
+    Position pos = { inserted_block_num, offset };
     //设置valid
     bool valid = true;
-    buffer->setBlockContent(filename, block_num - 1, offset, reinterpret_cast<char*>(&valid), sizeof(valid));
+    buffer->setBlockContent(filename, inserted_block_num, offset, reinterpret_cast<char*>(&valid), sizeof(valid));
     //写数据
     offset += sizeof(valid);
     for (const auto &value : record) {
         char *data = value.translate<char*>();
-        buffer->setBlockContent(filename, block_num - 1, offset, data, value.type.size);
+        buffer->setBlockContent(filename, inserted_block_num, offset, data, value.type.size);
         offset += value.type.size;
     }
+
+    return pos;
 }
