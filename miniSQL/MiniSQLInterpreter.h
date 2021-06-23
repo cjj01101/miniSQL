@@ -52,5 +52,5 @@ private:
     const regex string_pattern = regex("(?:\"|')([\\s\\S]+)(?:\"|')");
     const regex condition_pattern = regex("(\\w+)\\s?(<=|>=|<>|=|<|>)\\s?([\\s\\S]+?)(?: and ([\\s\\S]+))?");
 
-    void ShowResult(const Table &table, const ReturnTable &T);
+    void showResult(const Table &table, const ReturnTable &T);
 };

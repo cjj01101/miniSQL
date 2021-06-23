@@ -116,6 +116,40 @@ ReturnTable RecordManager::selectRecord(const string &tablename, const Table &ta
 	return T;
 }
 
+ReturnTable RecordManager::selectRecord(const string &tablename, const Table &table, const Predicate &pred, const std::vector<Position> &poses) {
+    string filename = TABLE_FILE_PATH(tablename);
+
+    int record_length = table.record_length;
+    ReturnTable T;
+    for (auto pos : poses) {
+        char* curRecord = buffer->getBlockContent(filename, pos.block_id);//返回该页的头指针
+        curRecord += pos.offset + sizeof(bool);
+        char *p = curRecord;
+        //一个个属性和pred比对
+        bool satisfied = true;
+        for (const auto &attr : table.attrs) {
+            string attr_name = attr.name;
+            if (pred.end() != pred.find(attr_name)) {//找到了这个属性上的条件
+                //提取data进行比较
+                Value v(attr.type, p);
+                if (!isFit(v, pred.at(attr_name))) {//不合条件
+                    satisfied = false;
+                    break;
+                }
+            }
+            p += attr.type.size;
+        }
+        if (satisfied) {//循环之后satisfied仍为1 or 没有where条件
+            //加入set
+            RecordInfo rec;
+            rec.pos = pos;
+            rec.content = addRecord(curRecord, table);
+            T.push_back(rec);
+        }
+    }
+    return T;
+}
+
 /*
 delete
 input:table_name,Table,Predicate

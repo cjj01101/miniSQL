@@ -5,6 +5,11 @@
 #include "MiniSQLException.h"
 using std::string;
 
+struct SQLResult {
+    Table table;
+    ReturnTable ret;
+};
+
 class API {
 public:
     API(CatalogManager *CM, RecordManager *RM, IndexManager *IM) : CM(CM), RM(RM), IM(IM) {}
@@ -14,8 +19,8 @@ public:
     void createIndex(const string &tablename, const string &indexname, const set<string> &keys);
     void dropIndex(const string &tablename, const string &indexname);
     void insertIntoTable(const string &tablename, Record &record);
-    void selectFromTable(const string &tablename, const Predicate &pred);
-    void deleteFromTable(const string &tablename, const Predicate &pred);
+    SQLResult selectFromTable(const string &tablename, const Predicate &pred);
+    int deleteFromTable(const string &tablename, const Predicate &pred);
 
 private:
     CatalogManager *CM;
@@ -24,8 +29,4 @@ private:
 
     void checkPredicate(const string &tablename, const Predicate &pred) const;
     std::map<Compare, std::set<Value>> filterCondition(const std::vector<Condition> &conds) const;
-    std::set<Value> filterEQCondition(const std::vector<Condition> &conds) const;
-    std::set<Value> filterNECondition(const std::vector<Condition> &conds) const;
-    std::map<Compare, Value> filterGCondition(const std::vector<Condition> &conds) const;
-    std::map<Compare, Value> filterLCondition(const std::vector<Condition> &conds) const;
 };

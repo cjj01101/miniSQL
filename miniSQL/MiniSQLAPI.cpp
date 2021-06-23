@@ -110,68 +110,8 @@ std::map<Compare, std::set<Value>> API::filterCondition(const std::vector<Condit
     return newCond;
 }
 
-std::set<Value> API::filterEQCondition(const std::vector<Condition> &conds) const {
-    std::set<Value> eqCond;
-    for (auto cond : conds) {
-        if (cond.comp == Compare::EQ) {
-            if (eqCond.size() == 0) eqCond.insert(cond.data);
-            else if (eqCond.end() == eqCond.find(cond.data)) {
-                eqCond.insert(cond.data);
-                break;
-            }
-        }
-    }
-    return eqCond;
-}
-
-std::set<Value> API::filterNECondition(const std::vector<Condition> &conds) const {
-    std::set<Value> neCond;
-    for (auto cond : conds) {
-        if (cond.comp == Compare::NE) {
-            if (neCond.end() == neCond.find(cond.data)) neCond.insert(cond.data);
-        }
-    }
-
-    return neCond;
-}
-
-std::map<Compare, Value> API::filterGCondition(const std::vector<Condition> &conds) const {
-    std::map<Compare, Value> gCond;
-    for (auto cond : conds) {
-        if (cond.comp == Compare::GE || cond.comp == Compare::GT) {
-            if (gCond.size() == 0) gCond.insert(make_pair(cond.comp, cond.data));
-            else {
-                Compare old_comp = gCond.begin()->first;
-                Value old_data = gCond.begin()->second;
-                if (old_data < cond.data || (old_comp == Compare::GE && cond.comp == Compare::GT && old_data == cond.data)) {
-                    gCond.clear();
-                    gCond.insert(make_pair(cond.comp, cond.data));
-                }
-            }
-        }
-    }
-    return gCond;
-}
-
-std::map<Compare, Value> API::filterLCondition(const std::vector<Condition> &conds) const {
-    std::map<Compare, Value> lCond;
-    for (auto cond : conds) {
-        if (cond.comp == Compare::LE || cond.comp == Compare::LT) {
-            if (lCond.size() == 0) lCond.insert(make_pair(cond.comp, cond.data));
-            else {
-                Compare old_comp = lCond.begin()->first;
-                Value old_data = lCond.begin()->second;
-                if (old_data > cond.data || (old_comp == Compare::LE && cond.comp == Compare::LT && old_data == cond.data)) {
-                    lCond.clear();
-                    lCond.insert(make_pair(cond.comp, cond.data));
-                }
-            }
-        }
-    }
-    return lCond;
-}
-
 void API::createTable(const string &tablename, const std::vector<Attr> &attrs, const set<string> &primary_key) {
+
     CM->addTableInfo(tablename, attrs);
     RM->createTable(tablename);
     if(primary_key.size() > 0) createIndex(tablename, "PRIMARY_KEY", primary_key);
@@ -217,7 +157,7 @@ void API::dropIndex(const string &tablename, const string &indexname) {
     IM->dropIndex(tablename, indexname);
 }
 
-void  API::insertIntoTable(const string &tablename, Record &record) {
+void API::insertIntoTable(const string &tablename, Record &record) {
     const Table &table = CM->getTableInfo(tablename);
     if (table.attrs.size() != record.size()) throw MiniSQLException("Wrong Number of Inserted Values!");
 
@@ -277,19 +217,17 @@ create table table2 (
 );
 */
 
-void API::selectFromTable(const string &tablename, const Predicate &pred) {
+SQLResult API::selectFromTable(const string &tablename, const Predicate &pred) {
     checkPredicate(tablename, pred);
 
     const Table &table = CM->getTableInfo(tablename);
-    ReturnTable result = RM->selectRecord(tablename, table, pred);
-    for (auto res : result) {
-        cout << res.pos.block_id << " " << res.pos.offset << endl;
-    }
+    ReturnTable result;
 
+    //尝试索引
     const auto &indexes = CM->getIndexInfo(tablename);
-    for (const auto &pred : pred) {
+    for (const auto &pr : pred) {
         for (const auto &index : indexes) {
-            if (index.keys.end() == index.keys.find(pred.first)) continue;
+            if (index.keys.end() == index.keys.find(pr.first)) continue;
 
             //计算索引size
             size_t basic_length = sizeof(bool) + sizeof(int) * 3;
@@ -309,8 +247,8 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
             vector<Position> possible_poses;
 
             //条件合并
-            auto newCond = filterCondition(pred.second);
-            if (newCond.size() == 0) return;
+            auto newCond = filterCondition(pr.second);
+            if (newCond.size() == 0) return SQLResult();
             if(newCond.end() != newCond.find(Compare::EQ)) {
                 const Value &eqValue = *(newCond.find(Compare::EQ)->second.begin());
                 Position pos;
@@ -363,15 +301,22 @@ void API::selectFromTable(const string &tablename, const Predicate &pred) {
                 }
                 }
             }
+
+            result = RM->selectRecord(tablename, table, pred, possible_poses);
+            return SQLResult{ table, result };
         }
     }
+
+    result = RM->selectRecord(tablename, table, pred);
+    return SQLResult{ table, result };
 }
 
-void API::deleteFromTable(const string &tablename, const Predicate &pred) {
+int API::deleteFromTable(const string &tablename, const Predicate &pred) {
     checkPredicate(tablename, pred);
 
     const Table &table = CM->getTableInfo(tablename);
-    ReturnTable result = RM->selectRecord(tablename, table, pred);
+    SQLResult records = selectFromTable(tablename, pred);
+    const ReturnTable &result = records.ret;
     for (const auto &record : result) RM->deleteRecord(tablename, record.pos);
 
     const auto &indexes = CM->getIndexInfo(tablename);
@@ -398,6 +343,8 @@ void API::deleteFromTable(const string &tablename, const Predicate &pred) {
             }
         }
     }
+
+    return result.size();
 }
 
 void API_test() {

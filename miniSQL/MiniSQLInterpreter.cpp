@@ -2,7 +2,6 @@
 #include <sstream>
 #include <iomanip>
 
-
 Type Interpreter::getType(const string &type_string) {
     Type type(BaseType::INT, 4);
     if (type_string == "float")  type.btype = BaseType::FLOAT;
@@ -14,6 +13,29 @@ Type Interpreter::getType(const string &type_string) {
     }
 
     return type;
+}
+
+void Interpreter::showResult(const Table &table, const ReturnTable &T) {
+    int i = 0;
+    int size[15];
+    cout.setf(ios::left);
+    for (const auto &attr : table.attrs) {
+        int datasize = (attr.type.btype == BaseType::CHAR) ? attr.type.size : 12;
+        size[i] = (datasize < attr.name.size()) ? attr.name.size() : datasize;
+        cout << setw(size[i]) << attr.name << " ";
+        i++;
+    }
+    cout << endl;
+    for (const auto &result : T) {
+        i = 0;
+        for (const auto &v : result.content) {
+            cout << setw(size[i]) << v << " ";
+            i++;
+        }
+        cout << endl;
+    }
+    //输出 "x row(s) affceted"
+    //输出时间
 }
 
 void Interpreter::parse_table_definition(const string &tablename, string &content, smatch &result) {
@@ -130,16 +152,20 @@ void Interpreter::parse_input(const string &input) {
     string content;
     smatch result;
 
+    clock_t start, end;
+    start = clock();
     if (regex_match(input, result, create_table_pattern)) {
         tablename = result[1];
         content = result[2];
         cout << "Match CREATE TABLE!" << endl << "[table name] " << tablename << endl << "[content] " << content << endl;
         parse_table_definition(tablename, content, result);
+        cout << "Create Table Succeeds." << endl;
     }
     else if (regex_match(input, result, drop_table_pattern)) {
         tablename = result[1];
         cout << "Match DROP TABLE!" << endl << "[table name] " << tablename << endl;
         core->dropTable(tablename);
+        cout << "Drop Table Succeeds." << endl;
     }
     else if (regex_match(input, result, create_index_pattern)) {
         indexname = result[1];
@@ -147,18 +173,21 @@ void Interpreter::parse_input(const string &input) {
         content = result[3];
         cout << "Match CREATE INDEX!" << endl << "[table name] " << tablename << endl << "[index name] " << indexname << endl << "[content] " << content << endl;
         core->createIndex(tablename, indexname, { content });
+        cout << "Create Index Succeeds." << endl;
     }
     else if (regex_match(input, result, drop_index_pattern)) {
         indexname = result[1];
         tablename = result[2];
         cout << "Match DROP INDEX!" << endl << "[table name] " << tablename << endl << "[index name] " << indexname << endl;
         core->dropIndex(tablename, indexname);
+        cout << "Drop Index Succeeds." << endl;
     }
     else if (regex_match(input, result, insert_pattern)) {
         tablename = result[1];
         content = result[2];
         cout << "Match INSERT!" << endl << "[table name] " << tablename << endl << "[content] " << content << endl;
         parse_insert_value(tablename, content, result);
+        cout << "1 Row Successfully Inserted." << endl;
     }
     else if (regex_match(input, result, select_pattern)) {
         tablename = result[1];
@@ -167,7 +196,13 @@ void Interpreter::parse_input(const string &input) {
         cout << "Match SELECT!" << endl << "[table name] " << tablename << endl << "[conditions] " << content << endl;
         Predicate pred;
         parse_condition(content, result, pred);
-        core->selectFromTable(tablename, pred);
+        SQLResult result = core->selectFromTable(tablename, pred);
+        int retCount = result.ret.size();
+        if (0 == retCount) cout << "No Rows Satisfying the Condition(s)." << endl;
+        else {
+            cout << retCount << " Row(s) Fetched:" << endl;
+            showResult(result.table, result.ret);
+        }
     }
     else if (regex_match(input, result, delete_pattern)) {
         tablename = result[1];
@@ -176,7 +211,8 @@ void Interpreter::parse_input(const string &input) {
         cout << "Match DELETE!" << endl << "[table name] " << tablename << endl << "[conditions] " << content << endl;
         Predicate pred;
         parse_condition(content, result, pred);
-        core->deleteFromTable(tablename, pred);
+        int retCount = core->deleteFromTable(tablename, pred);
+        cout << retCount << " Row(s) Affected:" << endl;
     }
     else if (regex_match(input, result, execfile_pattern)) {
         string filename = result[1];
@@ -191,6 +227,10 @@ void Interpreter::parse_input(const string &input) {
         throw InterpreterQuit();
     }
     else throw MiniSQLException("Syntax Error!");
+    
+    end = clock();
+    double time = double(end - start) / CLOCKS_PER_SEC;
+    cout << "Time Elapsed: " << time << "secs" << endl;
 }
 
 void Interpreter::start() {
@@ -214,29 +254,6 @@ void Interpreter::start() {
             cout << "--------------------------------" << endl;
         }
     }
-}
-
-void Interpreter::ShowResult(const Table &table, const ReturnTable &T) {
-	int i = 0;
-	int size[15];
-	for (auto iter = table.attrs.begin(); iter != table.attrs.end();iter++,i++) {
-		int datasize = (iter->type.btype==BaseType::CHAR) ? iter->type.size :12;
-		size[i] = (datasize < iter->name.size()) ? iter->name.size(): datasize;
-		cout.setf(ios::left);
-		cout << setw(size[i]) <<iter->name<<" ";
-	}
-	cout << endl;
-	i = 0;
-	for (auto iter = T.begin(); iter != T.end();iter++,i++) {
-		for (auto v = iter->content.begin(); v != iter->content.end();v++) {
-				char *data = v->translate<char*>();
-				cout.setf(ios::left);
-				cout << setw(size[i]) << *data << " ";
-		}
-		cout << endl;
-	}
-	//输出 "x row(s) affceted"
-	//输出时间
 }
 
 
