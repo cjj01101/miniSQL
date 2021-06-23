@@ -212,7 +212,7 @@ void Interpreter::parse_input(const string &input) {
         Predicate pred;
         parse_condition(content, result, pred);
         int retCount = core->deleteFromTable(tablename, pred);
-        cout << retCount << " Row(s) Affected:" << endl;
+        cout << retCount << " Row(s) Affected." << endl;
     }
     else if (regex_match(input, result, execfile_pattern)) {
         string filename = result[1];
@@ -224,7 +224,7 @@ void Interpreter::parse_input(const string &input) {
         inf.close();
     }
     else if (regex_match(input, result, quit_pattern)) {
-        out << "Quit MiniSQL. See You Next Time~" << endl;
+        out << "Quitting MiniSQL. See You Next Time~" << endl;
         throw InterpreterQuit();
     }
     else throw MiniSQLException("Syntax Error!");

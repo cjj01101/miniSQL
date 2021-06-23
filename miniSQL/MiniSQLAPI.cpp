@@ -144,21 +144,21 @@ void API::createIndex(const string &tablename, const string &indexname, const se
         }
         if(!key_exists) throw MiniSQLException("Invalid Index Key Identifier!");
     }
-    size_t size = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + primary_key_type.size) - 1;
+    size_t rank = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + primary_key_type.size) - 1;
 
-    CM->addIndexInfo(tablename, indexname, keys);
+    CM->addIndexInfo(tablename, indexname, rank, keys);
     switch (primary_key_type.btype) {
-    case BaseType::CHAR:    IM->createIndex<FLString>(tablename, indexname, size); break;
-    case BaseType::INT:    IM->createIndex<int>(tablename, indexname, size); break;
-    case BaseType::FLOAT:    IM->createIndex<float>(tablename, indexname, size); break;
+    case BaseType::CHAR:    IM->createIndex<FLString>(tablename, indexname, rank); break;
+    case BaseType::INT:    IM->createIndex<int>(tablename, indexname, rank); break;
+    case BaseType::FLOAT:    IM->createIndex<float>(tablename, indexname, rank); break;
     }
 
     ReturnTable T = selectFromTable(tablename, Predicate()).ret;
     for (const auto &record : T) {
         switch (primary_key_type.btype) {
-        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, indexname, size, FLString((record.content)[attr_pos].translate<char*>()), record.pos); break;
-        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, indexname, size, (record.content)[attr_pos].translate<int>(), record.pos); break;
-        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, indexname, size, (record.content)[attr_pos].translate<float>(), record.pos); break;
+        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, indexname, rank, FLString((record.content)[attr_pos].translate<char*>()), record.pos); break;
+        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, indexname, rank, (record.content)[attr_pos].translate<int>(), record.pos); break;
+        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, indexname, rank, (record.content)[attr_pos].translate<float>(), record.pos); break;
         }
     }
 }
@@ -184,7 +184,6 @@ void API::insertIntoTable(const string &tablename, Record &record) {
 
     const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &index : indexes) {
-        size_t basic_length = sizeof(bool) + sizeof(int) * 3;
         Type index_key_type;
         value_ptr = record.begin();
         for (const auto &key : index.keys) {
@@ -196,12 +195,10 @@ void API::insertIntoTable(const string &tablename, Record &record) {
                 value_ptr++;
             }
         }
-        if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
-        size_t size = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + index_key_type.size) - 1;
         switch (index_key_type.btype) {
-        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, index.name, size, FLString(value_ptr->translate<char*>()),insertPos); break;
-        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, index.name, size, value_ptr->translate<int>(), insertPos); break;
-        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, index.name, size, value_ptr->translate<float>(), insertPos); break;
+        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, index.name, index.rank, FLString(value_ptr->translate<char*>()),insertPos); break;
+        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, index.name, index.rank, value_ptr->translate<int>(), insertPos); break;
+        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, index.name, index.rank, value_ptr->translate<float>(), insertPos); break;
         }
     }
 }
@@ -240,8 +237,7 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
         for (const auto &index : indexes) {
             if (index.keys.end() == index.keys.find(pred_ptr->first)) continue;
 
-            //计算索引size
-            size_t basic_length = sizeof(bool) + sizeof(int) * 3;
+            //计算索引rank
             Type index_key_type;
             const Table &table = CM->getTableInfo(tablename);
             for (const auto &key : index.keys) {
@@ -252,8 +248,6 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
                     }
                 }
             }
-            if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
-            size_t size = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + index_key_type.size) - 1;
 
             vector<Position> possible_poses;
 
@@ -264,9 +258,9 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
                 const Value &eqValue = *(newCond.find(Compare::EQ)->second.begin());
                 Position pos;
                 switch (index_key_type.btype) {
-                case BaseType::CHAR:    pos = IM->findOneFromIndex<FLString>(tablename, index.name, size, eqValue.translate<char*>()); break;
-                case BaseType::INT:    pos = IM->findOneFromIndex<int>(tablename, index.name, size, eqValue.translate<int>()); break;
-                case BaseType::FLOAT:    pos = IM->findOneFromIndex<float>(tablename, index.name, size, eqValue.translate<float>()); break;
+                case BaseType::CHAR:    pos = IM->findOneFromIndex<FLString>(tablename, index.name, index.rank, eqValue.translate<char*>()); break;
+                case BaseType::INT:    pos = IM->findOneFromIndex<int>(tablename, index.name, index.rank, eqValue.translate<int>()); break;
+                case BaseType::FLOAT:    pos = IM->findOneFromIndex<float>(tablename, index.name, index.rank, eqValue.translate<float>()); break;
                 }
                 possible_poses.push_back(pos);
             } else {
@@ -282,7 +276,7 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
                     if (newCond.end() != newCond.find(Compare::NE)) {
                         for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(FLString(neKey.translate<char*>()));
                     }
-                    IM->findRangeFromIndex<FLString>(tablename, index.name, size, startKey, endKey, neKeys, possible_poses); break;
+                    IM->findRangeFromIndex<FLString>(tablename, index.name, index.rank, startKey, endKey, neKeys, possible_poses); break;
                 }
                 case BaseType::INT: {
                     std::pair<Compare, int> startKey = make_pair(Compare::EQ, 0);
@@ -295,7 +289,7 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
                     if (newCond.end() != newCond.find(Compare::NE)) {
                         for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(neKey.translate<int>());
                     }
-                    IM->findRangeFromIndex<int>(tablename, index.name, size, startKey, endKey, neKeys, possible_poses); break;
+                    IM->findRangeFromIndex<int>(tablename, index.name, index.rank, startKey, endKey, neKeys, possible_poses); break;
                 }
                 case BaseType::FLOAT: {
                     std::pair<Compare, float> startKey = make_pair(Compare::EQ, 0);
@@ -308,7 +302,7 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
                     if (newCond.end() != newCond.find(Compare::NE)) {
                         for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(neKey.translate<float>());
                     }
-                    IM->findRangeFromIndex<float>(tablename, index.name, size, startKey, endKey, neKeys, possible_poses); break;
+                    IM->findRangeFromIndex<float>(tablename, index.name, index.rank, startKey, endKey, neKeys, possible_poses); break;
                 }
                 }
             }
@@ -333,7 +327,6 @@ int API::deleteFromTable(const string &tablename, Predicate &pred) {
 
     const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &index : indexes) {
-        size_t basic_length = sizeof(bool) + sizeof(int) * 3;
         Type index_key_type;
         for (const auto &record : result) {
             auto value_ptr = record.content.begin();
@@ -346,12 +339,10 @@ int API::deleteFromTable(const string &tablename, Predicate &pred) {
                     value_ptr++;
                 }
             }
-            if (index_key_type.btype == BaseType::CHAR) index_key_type.size = MAXCHARSIZE;
-            size_t size = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + index_key_type.size) - 1;
             switch (index_key_type.btype) {
-            case BaseType::CHAR:    IM->removeFromIndex<FLString>(tablename, index.name, size, FLString(value_ptr->translate<char*>())); break;
-            case BaseType::INT:    IM->removeFromIndex<int>(tablename, index.name, size, value_ptr->translate<int>()); break;
-            case BaseType::FLOAT:    IM->removeFromIndex<float>(tablename, index.name, size, value_ptr->translate<float>()); break;
+            case BaseType::CHAR:    IM->removeFromIndex<FLString>(tablename, index.name, index.rank, FLString(value_ptr->translate<char*>())); break;
+            case BaseType::INT:    IM->removeFromIndex<int>(tablename, index.name, index.rank, value_ptr->translate<int>()); break;
+            case BaseType::FLOAT:    IM->removeFromIndex<float>(tablename, index.name, index.rank, value_ptr->translate<float>()); break;
             }
         }
     }

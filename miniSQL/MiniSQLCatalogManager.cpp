@@ -51,16 +51,17 @@ CatalogManager::CatalogManager(const char *meta_table_file_name, const char *met
             inf >> tablename >> size;
             vector<Index> indexes;
             string indexname;
+            int rank;
             string keyname;
             int key_size;
             set<string> keys;
             for (int i = 0; i < size; i++) {
-                inf >> indexname >> key_size;
+                inf >> indexname >> rank >> key_size;
                 for (int j = 0; j < key_size; j++) {
                     inf >> keyname;
                     keys.insert(keyname);
                 }
-                indexes.push_back({ indexname, keys });
+                indexes.push_back({ indexname, rank, keys });
             }
             index.insert(make_pair(tablename, indexes));
         }
@@ -95,7 +96,7 @@ CatalogManager::~CatalogManager() {
             const vector<Index> &indexes = ind.second;
             outf << ind.first << " " << indexes.size() << std::endl;
             for (const auto &index : indexes) {
-                outf << index.name << " " << index.keys.size();
+                outf << index.name << " " << index.rank << " " << index.keys.size();
                 for (const auto &attr : index.keys) outf << " " << attr;
                 outf << std::endl;
             }
@@ -145,9 +146,9 @@ const vector<Index> &CatalogManager::getIndexInfo(const string &tablename) const
     return index.at(tablename);
 }
 
-void CatalogManager::addIndexInfo(const string &tablename, const string &indexname, const set<string> &keys) {
+void CatalogManager::addIndexInfo(const string &tablename, const string &indexname, int rank, const set<string> &keys) {
     if (findIndex(tablename, indexname)) throw MiniSQLException("Duplicate Index Name!");
-    index[tablename].push_back({ indexname,keys });
+    index[tablename].push_back({ indexname,rank,keys });
 }
 
 void CatalogManager::deleteIndexInfo(const string &tablename, const string &indexname) {
