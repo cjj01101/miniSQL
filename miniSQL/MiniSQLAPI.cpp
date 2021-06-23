@@ -144,6 +144,8 @@ void API::createIndex(const string &tablename, const string &indexname, const se
         }
         if(!key_exists) throw MiniSQLException("Invalid Index Key Identifier!");
     }
+
+    if (primary_key_type.btype == BaseType::CHAR) primary_key_type.size = MAXCHARSIZE;
     size_t rank = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + primary_key_type.size) - 1;
 
     CM->addIndexInfo(tablename, indexname, rank, keys);

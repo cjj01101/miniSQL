@@ -1,3 +1,6 @@
+student2 2
+PRIMARY_KEY 254 1 id
+name_ind 14 1 name
 t 2
 PRIMARY_KEY 254 1 id
 IND 254 2 id money
