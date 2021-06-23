@@ -52,16 +52,16 @@ CatalogManager::CatalogManager(const char *meta_table_file_name, const char *met
             vector<Index> indexes;
             string indexname;
             int rank;
-            string keyname;
+            int key_position;
             int key_size;
-            set<string> keys;
+            set<int> key_positions;
             for (int i = 0; i < size; i++) {
                 inf >> indexname >> rank >> key_size;
                 for (int j = 0; j < key_size; j++) {
-                    inf >> keyname;
-                    keys.insert(keyname);
+                    inf >> key_position;
+                    key_positions.insert(key_position);
                 }
-                indexes.push_back({ indexname, rank, keys });
+                indexes.push_back({ indexname, rank, key_positions });
             }
             index.insert(make_pair(tablename, indexes));
         }
@@ -96,8 +96,8 @@ CatalogManager::~CatalogManager() {
             const vector<Index> &indexes = ind.second;
             outf << ind.first << " " << indexes.size() << std::endl;
             for (const auto &index : indexes) {
-                outf << index.name << " " << index.rank << " " << index.keys.size();
-                for (const auto &attr : index.keys) outf << " " << attr;
+                outf << index.name << " " << index.rank << " " << index.key_positions.size();
+                for (const auto &pos : index.key_positions) outf << " " << pos;
                 outf << std::endl;
             }
         }
@@ -146,9 +146,9 @@ const vector<Index> &CatalogManager::getIndexInfo(const string &tablename) const
     return index.at(tablename);
 }
 
-void CatalogManager::addIndexInfo(const string &tablename, const string &indexname, int rank, const set<string> &keys) {
+void CatalogManager::addIndexInfo(const string &tablename, const string &indexname, int rank, const set<int> &key_positions) {
     if (findIndex(tablename, indexname)) throw MiniSQLException("Duplicate Index Name!");
-    index[tablename].push_back({ indexname,rank,keys });
+    index[tablename].push_back({ indexname,rank,key_positions });
 }
 
 void CatalogManager::deleteIndexInfo(const string &tablename, const string &indexname) {

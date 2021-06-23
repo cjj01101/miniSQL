@@ -127,6 +127,8 @@ void API::dropTable(const string &tablename) {
 }
 
 void API::createIndex(const string &tablename, const string &indexname, const set<string> &keys) {
+    set<int> key_positions;
+    
     const Table &table = CM->getTableInfo(tablename);
     Type primary_key_type;
     int attr_pos = 0;
@@ -138,6 +140,7 @@ void API::createIndex(const string &tablename, const string &indexname, const se
                 if (false == attr.unique) throw MiniSQLException("Index Key Is Not Unique!");
                 primary_key_type = attr.type;
                 key_exists = true;
+                key_positions.insert(attr_pos);
                 break;
             }
             attr_pos++;
@@ -148,7 +151,7 @@ void API::createIndex(const string &tablename, const string &indexname, const se
     if (primary_key_type.btype == BaseType::CHAR) primary_key_type.size = MAXCHARSIZE;
     size_t rank = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + primary_key_type.size) - 1;
 
-    CM->addIndexInfo(tablename, indexname, rank, keys);
+    CM->addIndexInfo(tablename, indexname, rank, key_positions);
     switch (primary_key_type.btype) {
     case BaseType::CHAR:    IM->createIndex<FLString>(tablename, indexname, rank); break;
     case BaseType::INT:    IM->createIndex<int>(tablename, indexname, rank); break;
@@ -186,21 +189,13 @@ void API::insertIntoTable(const string &tablename, Record &record) {
 
     const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &index : indexes) {
-        Type index_key_type;
-        value_ptr = record.begin();
-        for (const auto &key : index.keys) {
-            for (const auto &attr : table.attrs) {
-                if (attr.name == key) {
-                    index_key_type = attr.type;
-                    break;
-                }
-                value_ptr++;
-            }
-        }
+        int key_position = *(index.key_positions.begin());
+        Type index_key_type = table.attrs[key_position].type;
+        const Value &value = record[key_position];
         switch (index_key_type.btype) {
-        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, index.name, index.rank, FLString(value_ptr->translate<char*>()),insertPos); break;
-        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, index.name, index.rank, value_ptr->translate<int>(), insertPos); break;
-        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, index.name, index.rank, value_ptr->translate<float>(), insertPos); break;
+        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, index.name, index.rank, FLString(value.translate<char*>()),insertPos); break;
+        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, index.name, index.rank, value.translate<int>(), insertPos); break;
+        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, index.name, index.rank, value.translate<float>(), insertPos); break;
         }
     }
 }
@@ -237,19 +232,16 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
     const auto &indexes = CM->getIndexInfo(tablename);
     for (auto pred_ptr = pred.begin(); pred_ptr != pred.end(); pred_ptr++) {
         for (const auto &index : indexes) {
-            if (index.keys.end() == index.keys.find(pred_ptr->first)) continue;
-
-            //¼ÆËãË÷Òýrank
-            Type index_key_type;
+            int attr_pos = 0;
             const Table &table = CM->getTableInfo(tablename);
-            for (const auto &key : index.keys) {
-                for (const auto &attr : table.attrs) {
-                    if (attr.name == key) {
-                        index_key_type = attr.type;
-                        break;
-                    }
-                }
+            for (const auto &attr : table.attrs) {
+                if (attr.name == pred_ptr->first) break;
+                attr_pos++;
             }
+
+            if (index.key_positions.end() == index.key_positions.find(attr_pos)) continue;
+            int key_position = *(index.key_positions.begin());
+            Type index_key_type = table.attrs[key_position].type;
 
             vector<Position> possible_poses;
 
@@ -329,22 +321,15 @@ int API::deleteFromTable(const string &tablename, Predicate &pred) {
 
     const auto &indexes = CM->getIndexInfo(tablename);
     for (const auto &index : indexes) {
-        Type index_key_type;
+        int key_position = *(index.key_positions.begin());
+        Type index_key_type = table.attrs[key_position].type;
         for (const auto &record : result) {
-            auto value_ptr = record.content.begin();
-            for (const auto &key : index.keys) {
-                for (const auto &attr : table.attrs) {
-                    if (attr.name == key) {
-                        index_key_type = attr.type;
-                        break;
-                    }
-                    value_ptr++;
-                }
-            }
+            int key_position = *(index.key_positions.begin());
+            const Value &value = record.content[key_position];
             switch (index_key_type.btype) {
-            case BaseType::CHAR:    IM->removeFromIndex<FLString>(tablename, index.name, index.rank, FLString(value_ptr->translate<char*>())); break;
-            case BaseType::INT:    IM->removeFromIndex<int>(tablename, index.name, index.rank, value_ptr->translate<int>()); break;
-            case BaseType::FLOAT:    IM->removeFromIndex<float>(tablename, index.name, index.rank, value_ptr->translate<float>()); break;
+            case BaseType::CHAR:    IM->removeFromIndex<FLString>(tablename, index.name, index.rank, FLString(value.translate<char*>())); break;
+            case BaseType::INT:    IM->removeFromIndex<int>(tablename, index.name, index.rank, value.translate<int>()); break;
+            case BaseType::FLOAT:    IM->removeFromIndex<float>(tablename, index.name, index.rank, value.translate<float>()); break;
             }
         }
     }
