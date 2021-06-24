@@ -23,8 +23,9 @@ struct Table {
 using table_file = map<string, Table>;
 
 struct Index {
-    Index(string name, set<string> keys) : name(name), keys(keys) {}
+    Index(string name, int rank, set<string> keys) : name(name), rank(rank), keys(keys) {}
     string name;
+    int rank;
     set<string> keys;
 };
 using index_file = map<string, vector<Index>>;
@@ -42,7 +43,7 @@ public:
 
     bool findIndex(const string &tablename, const string &indexname) const;
     const vector<Index> &getIndexInfo(const string &tablename) const;
-    void addIndexInfo(const string &tablename ,const string &indexname, const set<string> &keys);
+    void addIndexInfo(const string &tablename ,const string &indexname, int rank, const set<string> &keys);
     void deleteIndexInfo(const string &tablename, const string &indexname);
     void deleteIndexInfo(const string &tablename);
 

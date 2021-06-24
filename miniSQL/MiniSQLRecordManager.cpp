@@ -103,7 +103,7 @@ ReturnTable RecordManager::selectRecord(const string &tablename, const Table &ta
                 if (satisfied) {//循环之后satisfied仍为1 or 没有where条件
                     //加入set
                     RecordInfo rec;
-                    rec.pos = { k, searched_record * record_length };
+                    rec.pos = { k, (searched_record % record_per_block) * record_length };
                     rec.content = addRecord(curRecord + sizeof(bool), table);
                     T.push_back(rec);
                 }
