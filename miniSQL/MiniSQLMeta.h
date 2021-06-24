@@ -41,8 +41,9 @@ struct Type {
 };
 
 struct Value {
-    Value(Type type, const void *data);
+    Value(Type type = Type(), const void *data = nullptr);
     Value(const Value &rhs);
+    Value &operator=(const Value &rhs);
     ~Value() { delete[](char*)data; };
 
     template<typename T>

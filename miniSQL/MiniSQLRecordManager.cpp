@@ -172,7 +172,7 @@ Position RecordManager::insertRecord(const string &tablename, const Table &table
     string filename = TABLE_FILE_PATH(tablename);
 
 	//ºÏ≤‚≥ÂÕª
-    auto value_ptr = record.begin();
+    /*auto value_ptr = record.begin();
     for (auto attr = table.attrs.begin(); attr != table.attrs.end(); attr++, value_ptr++) {
         if (attr->unique) {
             Predicate pred;
@@ -180,7 +180,7 @@ Position RecordManager::insertRecord(const string &tablename, const Table &table
             ReturnTable result = selectRecord(tablename, table, pred);
             if(result.size() > 0) throw MiniSQLException("Duplicate Value on Unique Attribute!");
         }
-    }
+    }*/
     //≤Â»Î
     int inserted_block_num = getBlockNum(table) - 1;
     int record_per_block = PAGESIZE / table.record_length;

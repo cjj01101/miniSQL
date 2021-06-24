@@ -54,8 +54,8 @@ CatalogManager::CatalogManager(const char *meta_table_file_name, const char *met
             int rank;
             int key_position;
             int key_size;
-            set<int> key_positions;
             for (int i = 0; i < size; i++) {
+                set<int> key_positions;
                 inf >> indexname >> rank >> key_size;
                 for (int j = 0; j < key_size; j++) {
                     inf >> key_position;

@@ -2,15 +2,21 @@
 #include <iostream>
 
 Value::Value(Type type, const void *data) : type(type) {
-    if (data == nullptr) throw MiniSQLException("NULL Value!");
     this->data = new char[type.size];
-    memcpy_s(this->data, type.size, data, type.size);
+    if (data != nullptr) memcpy_s(this->data, type.size, data, type.size);
 }
 
 Value::Value(const Value &rhs) : type(rhs.type) {
-    if (data == nullptr) throw MiniSQLException("NULL Value!");
     data = new char[type.size];
     memcpy_s(data, type.size, rhs.data, type.size);
+}
+
+Value & Value::operator=(const Value &rhs) {
+    delete[](char*)data;
+    type = rhs.type;
+    data = new char[type.size];
+    memcpy_s(data, type.size, rhs.data, type.size);
+    return *this;
 }
 
 template<typename T>
@@ -21,16 +27,7 @@ typename std::enable_if<std::is_pointer<T>::value, T>::type Value::translate() c
 
 template<typename T>
 typename std::enable_if<!std::is_pointer<T>::value, T>::type Value::translate() const {
-    if (std::is_same<T, int>::value) {
-        if (type.btype == BaseType::INT) return *reinterpret_cast<int*>(data);
-        else if (type.btype == BaseType::FLOAT) return (int)*reinterpret_cast<float*>(data);
-        else throw MiniSQLException("Type Incompatible!");
-    }
-    else if (std::is_same<T, float>::value) {
-        if (type.btype == BaseType::INT) return (float)*reinterpret_cast<int*>(data);
-        else if (type.btype == BaseType::FLOAT) return *reinterpret_cast<float*>(data);
-        else throw MiniSQLException("Type Incompatible!");
-    }
+    if (std::is_same<T, int>::value || std::is_same<T, float>::value) return *reinterpret_cast<T*>(data);
     else throw MiniSQLException("Type Unsupported!");
 }
 

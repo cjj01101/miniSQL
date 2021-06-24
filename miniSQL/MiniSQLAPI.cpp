@@ -148,23 +148,14 @@ void API::createIndex(const string &tablename, const string &indexname, const se
         if(!key_exists) throw MiniSQLException("Invalid Index Key Identifier!");
     }
 
-    if (primary_key_type.btype == BaseType::CHAR) primary_key_type.size = MAXCHARSIZE;
     size_t rank = (PAGESIZE - basic_length) / (sizeof(int) + sizeof(Position) + primary_key_type.size) - 1;
 
     CM->addIndexInfo(tablename, indexname, rank, key_positions);
-    switch (primary_key_type.btype) {
-    case BaseType::CHAR:    IM->createIndex<FLString>(tablename, indexname, rank); break;
-    case BaseType::INT:    IM->createIndex<int>(tablename, indexname, rank); break;
-    case BaseType::FLOAT:    IM->createIndex<float>(tablename, indexname, rank); break;
-    }
+    IM->createIndex(tablename, indexname, primary_key_type, rank);
 
     ReturnTable T = selectFromTable(tablename, Predicate()).ret;
     for (const auto &record : T) {
-        switch (primary_key_type.btype) {
-        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, indexname, rank, FLString((record.content)[attr_pos].translate<char*>()), record.pos); break;
-        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, indexname, rank, (record.content)[attr_pos].translate<int>(), record.pos); break;
-        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, indexname, rank, (record.content)[attr_pos].translate<float>(), record.pos); break;
-        }
+        IM->insertIntoIndex(tablename, indexname, primary_key_type, rank, (record.content)[attr_pos], record.pos);
     }
 }
 
@@ -192,11 +183,7 @@ void API::insertIntoTable(const string &tablename, Record &record) {
         int key_position = *(index.key_positions.begin());
         Type index_key_type = table.attrs[key_position].type;
         const Value &value = record[key_position];
-        switch (index_key_type.btype) {
-        case BaseType::CHAR:    IM->insertIntoIndex<FLString>(tablename, index.name, index.rank, FLString(value.translate<char*>()),insertPos); break;
-        case BaseType::INT:    IM->insertIntoIndex<int>(tablename, index.name, index.rank, value.translate<int>(), insertPos); break;
-        case BaseType::FLOAT:    IM->insertIntoIndex<float>(tablename, index.name, index.rank, value.translate<float>(), insertPos); break;
-        }
+        IM->insertIntoIndex(tablename, index.name, index_key_type, index.rank, value,insertPos);
     }
 }
 
@@ -251,54 +238,19 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
             if(newCond.end() != newCond.find(Compare::EQ)) {
                 const Value &eqValue = *(newCond.find(Compare::EQ)->second.begin());
                 Position pos;
-                switch (index_key_type.btype) {
-                case BaseType::CHAR:    pos = IM->findOneFromIndex<FLString>(tablename, index.name, index.rank, eqValue.translate<char*>()); break;
-                case BaseType::INT:    pos = IM->findOneFromIndex<int>(tablename, index.name, index.rank, eqValue.translate<int>()); break;
-                case BaseType::FLOAT:    pos = IM->findOneFromIndex<float>(tablename, index.name, index.rank, eqValue.translate<float>()); break;
-                }
+                pos = IM->findOneFromIndex(tablename, index.name, index_key_type, index.rank, eqValue);
+                if (pos.block_id < 0) return SQLResult();
                 possible_poses.push_back(pos);
             } else {
-                switch (index_key_type.btype) {
-                case BaseType::CHAR: {
-                    std::pair<Compare, FLString> startKey = make_pair(Compare::EQ, FLString(""));
-                    std::pair<Compare, FLString> endKey = make_pair(Compare::EQ, FLString(""));
-                    std::set<FLString> neKeys;
-                    if (newCond.end() != newCond.find(Compare::GE)) startKey = make_pair(Compare::GE, FLString(newCond.find(Compare::GE)->second.begin()->translate<char*>()));
-                    else if (newCond.end() != newCond.find(Compare::GT)) startKey = make_pair(Compare::GT, FLString(newCond.find(Compare::GT)->second.begin()->translate<char*>()));
-                    if (newCond.end() != newCond.find(Compare::LE)) endKey = make_pair(Compare::LE, FLString(newCond.find(Compare::LE)->second.begin()->translate<char*>()));
-                    else if (newCond.end() != newCond.find(Compare::LT)) endKey = make_pair(Compare::LT, FLString(newCond.find(Compare::LT)->second.begin()->translate<char*>()));
-                    if (newCond.end() != newCond.find(Compare::NE)) {
-                        for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(FLString(neKey.translate<char*>()));
-                    }
-                    IM->findRangeFromIndex<FLString>(tablename, index.name, index.rank, startKey, endKey, neKeys, possible_poses); break;
-                }
-                case BaseType::INT: {
-                    std::pair<Compare, int> startKey = make_pair(Compare::EQ, 0);
-                    std::pair<Compare, int> endKey = make_pair(Compare::EQ, 0);
-                    std::set<int> neKeys;
-                    if (newCond.end() != newCond.find(Compare::GE)) startKey = make_pair(Compare::GE, newCond.find(Compare::GE)->second.begin()->translate<int>());
-                    else if (newCond.end() != newCond.find(Compare::GT)) startKey = make_pair(Compare::GT, newCond.find(Compare::GT)->second.begin()->translate<int>());
-                    if (newCond.end() != newCond.find(Compare::LE)) endKey = make_pair(Compare::LE, newCond.find(Compare::LE)->second.begin()->translate<int>());
-                    else if (newCond.end() != newCond.find(Compare::LT)) endKey = make_pair(Compare::LT, newCond.find(Compare::LT)->second.begin()->translate<int>());
-                    if (newCond.end() != newCond.find(Compare::NE)) {
-                        for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(neKey.translate<int>());
-                    }
-                    IM->findRangeFromIndex<int>(tablename, index.name, index.rank, startKey, endKey, neKeys, possible_poses); break;
-                }
-                case BaseType::FLOAT: {
-                    std::pair<Compare, float> startKey = make_pair(Compare::EQ, 0);
-                    std::pair<Compare, float> endKey = make_pair(Compare::EQ, 0);
-                    std::set<float> neKeys;
-                    if (newCond.end() != newCond.find(Compare::GE)) startKey = make_pair(Compare::GE, newCond.find(Compare::GE)->second.begin()->translate<float>());
-                    else if (newCond.end() != newCond.find(Compare::GT)) startKey = make_pair(Compare::GT, newCond.find(Compare::GT)->second.begin()->translate<float>());
-                    if (newCond.end() != newCond.find(Compare::LE)) endKey = make_pair(Compare::LE, newCond.find(Compare::LE)->second.begin()->translate<float>());
-                    else if (newCond.end() != newCond.find(Compare::LT)) endKey = make_pair(Compare::LT, newCond.find(Compare::LT)->second.begin()->translate<float>());
-                    if (newCond.end() != newCond.find(Compare::NE)) {
-                        for (auto neKey : newCond.find(Compare::NE)->second) neKeys.insert(neKey.translate<float>());
-                    }
-                    IM->findRangeFromIndex<float>(tablename, index.name, index.rank, startKey, endKey, neKeys, possible_poses); break;
-                }
-                }
+                std::pair<Compare, Value> startKey = make_pair(Compare::EQ, Value());
+                std::pair<Compare, Value> endKey = make_pair(Compare::EQ, Value());
+                std::set<Value> neKeys;
+                if (newCond.end() != newCond.find(Compare::GE)) startKey = make_pair(Compare::GE, *(newCond.find(Compare::GE)->second.begin()));
+                else if (newCond.end() != newCond.find(Compare::GT)) startKey = make_pair(Compare::GT, *(newCond.find(Compare::GT)->second.begin()));
+                if (newCond.end() != newCond.find(Compare::LE)) endKey = make_pair(Compare::LE, *(newCond.find(Compare::LE)->second.begin()));
+                else if (newCond.end() != newCond.find(Compare::LT)) endKey = make_pair(Compare::LT, *(newCond.find(Compare::LT)->second.begin()));
+                if (newCond.end() != newCond.find(Compare::NE)) neKeys = newCond.find(Compare::NE)->second;
+                IM->findRangeFromIndex(tablename, index.name, index_key_type, index.rank, startKey, endKey, neKeys, possible_poses);
             }
 
             pred.erase(pred_ptr);
@@ -326,11 +278,7 @@ int API::deleteFromTable(const string &tablename, Predicate &pred) {
         for (const auto &record : result) {
             int key_position = *(index.key_positions.begin());
             const Value &value = record.content[key_position];
-            switch (index_key_type.btype) {
-            case BaseType::CHAR:    IM->removeFromIndex<FLString>(tablename, index.name, index.rank, FLString(value.translate<char*>())); break;
-            case BaseType::INT:    IM->removeFromIndex<int>(tablename, index.name, index.rank, value.translate<int>()); break;
-            case BaseType::FLOAT:    IM->removeFromIndex<float>(tablename, index.name, index.rank, value.translate<float>()); break;
-            }
+            IM->removeFromIndex(tablename, index.name, index_key_type, index.rank, value);
         }
     }
 

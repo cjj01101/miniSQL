@@ -5,7 +5,7 @@ using namespace std;
 
 void BPlusTree_test() {
     BufferManager BM;
-    BPlusTree<int, int> BPT(&BM, "../test.index", 3);
+    /*BPlusTree<int> BPT(&BM, "../test.index", 3);
     const int insert_list[] = { 2,4,3,1,5,0,6,-1,7,8,6,2,30,40,25,24,15,16,14,13,11,12,35,9,10,37,31,27 };
     //const FLString insert_list[] = { "a","adf","poe","geofiur","asdf","tind","mank","qe","dfo","grad","excl","qpeoi","dflkjq","uit" };
     for (auto i : insert_list) {
@@ -44,5 +44,5 @@ void BPlusTree_test() {
             if (e == BPlusTreeException::KeyNotExist) cout << i << " Not Found!\n";
         }
         cout << "----------------\n";
-    }
+    }*/
 }
