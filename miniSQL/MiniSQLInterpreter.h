@@ -20,19 +20,20 @@ class InterpreterQuit {};
 class Interpreter {
 public:
     Interpreter(API *core, istream &in, ostream &out) : core(core), in(in), out(out) {};
+    void start();
 
-    Type getType(const string &type_string);
+private:
+    API *core;
+    istream &in;
+    ostream &out;
 
     void parse_input(const string &input);
     void parse_table_definition(const string &tablename, string &content, smatch &result);
     void parse_insert_value(const string &tablename, string &content, smatch &result);
     void parse_condition(string &content, smatch &result, Predicate &pred);
 
-    void start();
-private:
-    API *core;
-    istream &in;
-    ostream &out;
+    Type getType(const string &type_string);
+    void showResult(const Table &table, const ReturnTable &T);
 
     const regex create_table_pattern = regex("create table (\\w+)\\s?\\(([\\s\\S]+)\\)");
     const regex drop_table_pattern = regex("drop table (\\w+)\\s?");
@@ -52,5 +53,4 @@ private:
     const regex string_pattern = regex("(?:\"|')([\\s\\S]+)(?:\"|')");
     const regex condition_pattern = regex("(\\w+)\\s?(<=|>=|<>|=|<|>)\\s?([\\s\\S]+?)(?: and ([\\s\\S]+))?");
 
-    void showResult(const Table &table, const ReturnTable &T);
 };

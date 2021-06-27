@@ -175,6 +175,15 @@ void API::insertIntoTable(const string &tablename, Record &record) {
         value_ptr++;
     }
 
+    value_ptr = record.begin();
+    for (auto attr = table.attrs.begin(); attr != table.attrs.end(); attr++, value_ptr++) {
+        if (attr->unique) {
+            Predicate pred;
+            pred[attr->name].push_back({ Compare::EQ, *value_ptr });
+            SQLResult result = selectFromTable(tablename, pred);
+            if (result.ret.size() > 0) throw MiniSQLException("Duplicate Value on Unique Attribute!");
+        }
+    }
     Position insertPos = RM->insertRecord(tablename, table, record);
     CM->increaseRecordCount(tablename);
 
@@ -220,7 +229,6 @@ SQLResult API::selectFromTable(const string &tablename, Predicate &pred) {
     for (auto pred_ptr = pred.begin(); pred_ptr != pred.end(); pred_ptr++) {
         for (const auto &index : indexes) {
             int attr_pos = 0;
-            const Table &table = CM->getTableInfo(tablename);
             for (const auto &attr : table.attrs) {
                 if (attr.name == pred_ptr->first) break;
                 attr_pos++;

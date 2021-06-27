@@ -100,7 +100,7 @@ public:
         }
         std::pair<Value, DataType> operator*() const {
             if (!valid()) throw BPlusTreeException::IteratorOverBounds;
-            return make_pair(key[offset], data[offset]);
+            return std::make_pair(key[offset], data[offset]);
         }
 
         bool operator==(const iter &rhs) const {
@@ -131,21 +131,6 @@ public:
 
     int findNextPath(const Value &guideKey) const;
     int splitNode(NodeType *parentNode);
-    /*void print() const {
-        if (isLeaf) {
-            std::cout << this->keyNum << "-Leaf:";
-            for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "," << data[i] << "]";
-            std::cout << std::endl;
-        } else {
-            std::cout << this->keyNum << "-Internal:";
-            for (int i = 0; i < this->keyNum; i++) std::cout << "[" << this->key[i] << "]";
-            std::cout << std::endl;
-            for (int i = 0; i <= this->keyNum; i++) {
-                const NodeType childNode(buffer, filename, child[i], rank);
-                childNode.print();
-            }
-        }
-    }*/
 
     bool checkData(const Value &guideKey) const;
     int insertData(NodeType *parentNode, const Value &newKey, const DataType &newData);
@@ -592,12 +577,8 @@ typename BPlusNode<DataType>::iter BPlusNode<DataType>::getStart_intern(const Va
 /*                  定义                    */
 /*                                          */
 
-class BPlusTreeInterface {
-    virtual void print() const {};
-}; //供IndexManager用
-
 template<typename DataType>
-class BPlusTree: public BPlusTreeInterface {
+class BPlusTree {
 public:
     using NodeType = BPlusNode<DataType>;
     BPlusTree(BufferManager *buffer, const string &filename, const Type &type, int rank);
