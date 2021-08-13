@@ -200,8 +200,8 @@ void Interpreter::parse_input(const string &input) {
         int retCount = result.ret.size();
         if (0 == retCount) cout << "No Rows Satisfying the Condition(s)." << endl;
         else {
-            cout << retCount << " Row(s) Fetched:" << endl;
             showResult(result.table, result.ret);
+            cout << retCount << " Row(s) Fetched:" << endl;
         }
     }
     else if (regex_match(input, result, delete_pattern)) {

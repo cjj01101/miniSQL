@@ -63,7 +63,7 @@ public:
             this->offset = offset;
         }
         iter(const iter &rhs)
-            : buffer(rhs.buffer), filename(rhs.filename), self(rhs.self), rank(rhs.rank), keyNum(rhs.keyNum), nextLeaf(rhs.nextLeaf), offset(rhs.offset)
+            : buffer(rhs.buffer), filename(rhs.filename), self(rhs.self), type(rhs.type), rank(rhs.rank), keyNum(rhs.keyNum), nextLeaf(rhs.nextLeaf), offset(rhs.offset)
         {
             if (self == 0) {
                 key = nullptr;
